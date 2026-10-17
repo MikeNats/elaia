@@ -12,6 +12,7 @@ import { createLeader } from './leader';
 import { PANEL_TYPE } from './panel';
 import { createPanelSlot } from './panelSlot';
 import { readSettings } from './settings';
+import { startProblem } from './stop';
 import { watchForUpdate } from './updated';
 import { createWatchers } from './watchers';
 
@@ -22,23 +23,8 @@ export interface ElaiaApi {
   isTreeVisible(): boolean;
 }
 
-// Bad settings stop Elaia here, with the name of what to fix.
-function settingsProblem(context: vscode.ExtensionContext): ElaiaApi | null {
-  try {
-    readSettings();
-    return null;
-  } catch (err) {
-    const text = err instanceof Error ? err.message : String(err);
-    void vscode.window.showErrorMessage(text);
-    context.subscriptions.push(
-      vscode.commands.registerCommand('elaia.open', () => vscode.window.showErrorMessage(text)),
-    );
-    return { app: null, isPanelOpen: () => false, isTreeVisible: () => false };
-  }
-}
-
 export function activate(context: vscode.ExtensionContext): ElaiaApi {
-  const problem = settingsProblem(context);
+  const problem = startProblem(context);
   if (problem) return problem;
 
   const root = context.globalStorageUri.fsPath;
