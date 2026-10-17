@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp, type Settings } from '@/app';
 import { createStore } from '@/store';
 import { ToHostSchema, type ToWebview } from '@/shared';
@@ -11,6 +11,7 @@ import { FAKE_CLAUDE, fakeClaude } from '../../support/fakeClaude';
 const NOW = '2026-10-13T10:00:00Z';
 let posted: ToWebview[];
 let settings: Settings;
+let clock: string;
 
 function app() {
   const myPosts = posted;
@@ -20,7 +21,7 @@ function app() {
     post: (m) => myPosts.push(m),
     notify: () => undefined,
     isLeader: () => true,
-    now: () => NOW,
+    now: () => clock,
   });
 }
 
@@ -28,6 +29,11 @@ function app() {
 const usages = () =>
   posted.flatMap((m) => (m.type === 'snapshot' && m.snapshot.usage ? [m.snapshot.usage] : []));
 const lastUsage = () => usages().at(-1);
+
+// Waits in real time until the fake has started and read its prompt. setImmediate is not faked.
+async function started(claude: { calls(): unknown[] }): Promise<void> {
+  while (claude.calls().length === 0) await new Promise((r) => setImmediate(r));
+}
 
 // A report from a minute ago: fresh, so the timer alone would not ask again.
 const FRESH = {
@@ -37,6 +43,7 @@ const FRESH = {
 };
 
 beforeEach(() => {
+  clock = NOW;
   posted = [];
   settings = {
     workflow: 'glafka',
@@ -49,6 +56,10 @@ beforeEach(() => {
     allowedTools: [],
     autoAdvance: true,
   };
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('usage refresh', { timeout: 30_000 }, () => {
@@ -114,5 +125,72 @@ describe('usage refresh', { timeout: 30_000 }, () => {
     a.store.limits.set(FRESH);
     await a.refreshLimits();
     expect(claude.calls()).toHaveLength(0);
+  });
+
+  it('asks once in 10 minutes when no report ever comes back', async () => {
+    const claude = fakeClaude('turn');
+    const a = app();
+    await a.refreshLimits();
+    await a.refreshLimits();
+    expect(claude.calls()).toHaveLength(1);
+    clock = '2026-10-13T10:09:59Z';
+    await a.refreshLimits();
+    expect(claude.calls()).toHaveLength(1);
+    clock = '2026-10-13T10:10:00Z';
+    await a.refreshLimits();
+    expect(claude.calls()).toHaveLength(2);
+  });
+
+  it('makes the timer wait 10 minutes after you click refresh', async () => {
+    const claude = fakeClaude('turn');
+    const a = app();
+    await a.refreshUsage();
+    await a.refreshLimits();
+    expect(claude.calls()).toHaveLength(1);
+  });
+
+  it('never asks on the timer when the agent is not Claude', async () => {
+    const claude = fakeClaude('limits');
+    settings = { ...settings, agent: 'command' };
+    const a = app();
+    await a.refreshLimits();
+    expect(claude.calls()).toHaveLength(0);
+  });
+
+  it('still asks at once when you click refresh with another agent', async () => {
+    const claude = fakeClaude('limits');
+    settings = { ...settings, agent: 'command' };
+    const a = app();
+    await a.refreshUsage();
+    expect(claude.calls()).toHaveLength(1);
+  });
+
+  it('stops a refresh that hangs after 30 seconds, says it failed, and can ask again', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const claude = fakeClaude('limits');
+    claude.hang();
+    const a = app();
+    const asking = a.refreshUsage();
+    await started(claude);
+    await vi.advanceTimersByTimeAsync(29_999);
+    expect(lastUsage()?.refreshing).toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    await asking;
+    expect(lastUsage()).toMatchObject({ refreshing: false, failed: true });
+    fakeClaude('limits');
+    await a.refreshUsage();
+    expect(lastUsage()).toMatchObject({ refreshing: false, failed: false });
+  });
+
+  it('stops a timer ask that hangs, and stays silent', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const claude = fakeClaude('limits');
+    claude.hang();
+    const a = app();
+    const asking = a.refreshLimits();
+    await started(claude);
+    await vi.advanceTimersByTimeAsync(30_000);
+    await asking;
+    expect(lastUsage()).toMatchObject({ refreshing: false, failed: false });
   });
 });

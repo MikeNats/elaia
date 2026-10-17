@@ -44,7 +44,7 @@ function newState(deps: AppDeps): AppState {
     disposed: false,
     liveTimer: null,
     viewing: null,
-    limitsAsk: { running: false, failed: false },
+    limitsAsk: { running: false, failed: false, lastAt: null },
   };
 }
 
@@ -61,7 +61,8 @@ export function createApp(deps: AppDeps) {
     refresh: (p: string) => refresh(app, p),
     syncProjects: () => syncProjects(app),
     refreshAll: () => Promise.all([...app.projects.keys()].map((p) => refresh(app, p))),
-    // Your plan's usage, asked for when the last report is old. Only while the panel is open.
+    // Your plan's usage, asked for when the last report and the last ask are old, and Claude is
+    // your agent. Only while the panel is open.
     refreshLimits: () => refreshLimits(app),
     // The refresh button: ask now, however fresh the numbers are.
     refreshUsage: () => refreshLimits(app, { force: true }),
