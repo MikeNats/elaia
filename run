@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -e
+
+BLUE='\033[0;34m'; GREEN='\033[0;32m'; RED='\033[0;31m'; RESET='\033[0m'
+info()    { echo -e "${BLUE}→${RESET} $1"; }
+success() { echo -e "${GREEN}✓${RESET} $1"; }
+error()   { echo -e "${RED}✗${RESET} $1"; }
+
+# Ctrl-C must abort immediately, not continue into the next step.
+on_signal() { error "Interrupted — aborting"; exit 130; }
+trap on_signal INT TERM
+
+step() { info "$1"; shift; "$@" && success "done" || { error "failed"; exit 1; }; }
+
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  build)        npm run build ;;
+  lint)         npm run lint ;;
+  lint:fix)     npm run lint:fix ;;
+  format)       npm run format ;;
+  format:check) npm run format:check ;;
+  typecheck)    npm run typecheck ;;
+  check)
+    step "format" npm run format:check
+    step "lint" npm run lint
+    step "typecheck" npm run typecheck
+    ;;
+  test)         npm run test -- "$@" ;;
+  test:glafka)  npm run test:glafka ;;
+  test:vscode)  npm run test:vscode ;;
+  coverage)     npm run test:coverage ;;
+  package)      npm run package ;;
+  install-ext)
+    step "package" npm run package
+    step "install into VS Code" code --install-extension dist/elaia.vsix --force
+    ;;
+  *)
+    echo "usage: ./run <command>"
+    echo "  build | check | lint | lint:fix | format | format:check | typecheck"
+    echo "  test | test:glafka | test:vscode | coverage"
+    echo "  package      build dist/elaia.vsix"
+    echo "  install-ext  package and install into VS Code"
+    ;;
+esac

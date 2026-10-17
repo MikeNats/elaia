@@ -1,0 +1,149 @@
+/* You and the agent: a name line and a thin color bar on the left. All left-aligned. */
+.message {
+  border-left: 3px solid var(--speaker);
+  padding: 2px 0 2px 12px;
+  margin-top: 14px;
+}
+.message.continued {
+  margin-top: 4px;
+}
+.message-you {
+  --speaker: var(--vscode-charts-blue, #3794ff);
+}
+.message-agent {
+  --speaker: var(--vscode-charts-green, #89d185);
+}
+.message-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+.message-name {
+  font-weight: 700;
+  color: var(--speaker);
+}
+.message-time,
+.entry-time {
+  font-size: 0.8em;
+  opacity: 0.5;
+}
+
+/* The agent's Markdown: tight spacing, code in the editor font. */
+.markdown > :first-child {
+  margin-top: 0;
+}
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown pre,
+.markdown table,
+.markdown blockquote {
+  margin: 6px 0;
+}
+.markdown ul,
+.markdown ol {
+  padding-left: 22px;
+}
+.markdown li {
+  margin: 2px 0;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  font-size: 1.05em;
+  margin: 10px 0 4px;
+}
+.markdown code {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.92em;
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.15));
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.markdown pre {
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.15));
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+.markdown pre code {
+  background: none;
+  padding: 0;
+}
+/* In a permission card the whole command must be readable: wrap, no side scroll. */
+.entry-approval .markdown pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.markdown table {
+  border-collapse: collapse;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid var(--vscode-panel-border);
+  padding: 3px 8px;
+  text-align: left;
+}
+.markdown blockquote {
+  border-left: 3px solid var(--vscode-panel-border);
+  padding-left: 10px;
+  opacity: 0.85;
+}
+.markdown a {
+  color: var(--vscode-textLink-foreground);
+}
+
+/* A ticket chat panel under a review fills its panel. */
+.thread-only {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Send, and Stop beside it while the agent works. */
+.message-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: stretch;
+  justify-content: flex-end;
+}
+/* Clear at the very top of the column; Send and Stop stay at the bottom. */
+.message-buttons .clear {
+  margin-bottom: auto;
+}
+.queued {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+}
+
+/* The ticket card at the top of a chat: a coloured edge, roomy, easy to scan. */
+.ticket-intro {
+  margin: 4px 0 12px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--vscode-textLink-foreground);
+  background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.08));
+  border-radius: 2px;
+}
+.ticket-intro h3 {
+  margin: 0 0 8px;
+  font-size: 1.1em;
+  opacity: 1;
+}
+.ticket-intro ul {
+  margin: 4px 0 8px;
+  padding-left: 18px;
+}
+.ticket-intro li {
+  margin: 3px 0;
+}
+.ticket-intro p:last-child {
+  margin-bottom: 0;
+  font-size: 0.85em;
+  opacity: 0.75;
+}
