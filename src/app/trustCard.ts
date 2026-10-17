@@ -1,9 +1,11 @@
 import path from 'node:path';
-import type { Runnable } from '@/shared';
+import type { Runnable, ThreadRef } from '@/shared';
+import { runHeld } from './chat';
 import { chatEntry, note, record } from './record';
 import { keepTrust, repoRunnables, trustedNow, trustHash, UNREADABLE } from './repoTrust';
 import { offerSetup } from './setup';
 import { projectRef } from './setupCards';
+import type { TurnOptions } from './turnOnce';
 import type { AppState } from './types';
 
 export const NOT_TRUSTED_TURN =
@@ -78,6 +80,7 @@ export async function trustRepo(app: AppState, project: string, hash: string): P
   app.trustDeclined.delete(project);
   note(app, ref, 'progress', TRUSTED);
   offerSetup(app, project);
+  await runHeld(app, project);
 }
 
 export function notNowTrust(app: AppState, project: string): void {
@@ -85,6 +88,13 @@ export function notNowTrust(app: AppState, project: string): void {
   record(app, ref, [chatEntry(app, 'you', 'Not now')]);
   app.trustDeclined.add(project);
   note(app, ref, 'progress', NOT_NOW);
+}
+
+// A turn that waits for your Trust. Your line shows now; the turn runs once, after Trust.
+export function holdForTrust(app: AppState, ref: ThreadRef, text: string, opts: TurnOptions) {
+  if (text && !opts.queued) record(app, ref, [chatEntry(app, 'you', text)]);
+  const held = app.heldForTrust.get(ref.project) ?? [];
+  app.heldForTrust.set(ref.project, [...held, { ref, text, prompt: opts.prompt, push: opts.push }]);
 }
 
 export const trustActions = (app: AppState) => ({

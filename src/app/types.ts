@@ -39,8 +39,6 @@ export interface AppDeps {
   // True in the one VS Code window that keeps the threads. Other windows only show state.
   isLeader(): boolean;
   now(): string;
-  // Asks you yes or no in a VS Code dialog. Missing (in tests, say): the answer is no.
-  confirm?(text: string, yes: string): Promise<boolean>;
 }
 
 // A turn waiting for a busy chat. `text` is your line (empty for a turn Elaia starts itself);
