@@ -15,7 +15,7 @@ async function pickProject(ctx: MessageContext): Promise<void> {
   ctx.projectsChanged();
 }
 
-// Messages only VS Code itself can answer: pick a folder, open a file or folder, save a setting.
+// Messages only VS Code itself can answer: pick a folder, open a worktree, save a setting.
 // Returns true when the message was one of them.
 export async function vscodeAction(msg: ToHost, ctx: MessageContext): Promise<boolean> {
   switch (msg.type) {
@@ -31,17 +31,17 @@ export async function vscodeAction(msg: ToHost, ctx: MessageContext): Promise<bo
     case 'own-window':
       await ctx.ownWindow(msg.on);
       return true;
-    case 'open-folder':
-      await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(msg.path), {
+    case 'open-folder': {
+      const worktree = ctx.app.ticket({ project: msg.project, thread: msg.ticket })?.worktree;
+      if (!worktree) {
+        ctx.post({ type: 'error', text: `Ticket ${msg.ticket} has no worktree yet.` });
+        return true;
+      }
+      await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(worktree), {
         forceNewWindow: true,
       });
       return true;
-    case 'open-file':
-      await vscode.window.showTextDocument(vscode.Uri.file(msg.path), {
-        viewColumn: vscode.ViewColumn.Beside,
-        preview: true,
-      });
-      return true;
+    }
     default:
       return false;
   }

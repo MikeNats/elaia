@@ -54,8 +54,8 @@ export const ToHostSchema = z.discriminatedUnion('type', [
   }),
   // Move the Elaia tab into its own window (with its own tree), or back to the main window.
   z.strictObject({ type: z.literal('own-window'), on: z.boolean() }),
-  z.strictObject({ type: z.literal('open-folder'), path: z.string() }),
-  z.strictObject({ type: z.literal('open-file'), path: z.string() }),
+  // Open a ticket's worktree in a new window. The host looks the folder up: no path comes in.
+  z.strictObject({ type: z.literal('open-folder'), project: z.string(), ticket: name }),
   z.strictObject({ type: z.literal('open-diff'), project: z.string(), ticket: name }),
 ]);
 export type ToHost = z.infer<typeof ToHostSchema>;

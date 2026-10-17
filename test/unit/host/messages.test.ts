@@ -8,6 +8,7 @@ import type { ToWebview } from '@/shared';
 import { createStore } from '@/store';
 import { FAKE_CLAUDE } from '../../support/fakeClaude';
 import { FAKE_GLAFKA } from '../../support/fakeGlafka';
+import { makeTicket } from '../../support/ticket';
 
 // VS Code itself, faked: the host only needs to open a folder here.
 const { executeCommand } = vi.hoisted(() => ({ executeCommand: vi.fn() }));
@@ -123,5 +124,35 @@ describe('handleMessage: names', () => {
     expect(errors()).toHaveLength(1);
     expect(errors()[0]).toContain('does not understand');
     expect(send).not.toHaveBeenCalled();
+  });
+});
+
+describe('handleMessage: open-folder', () => {
+  const id = '2026-10-13-add-csv-export';
+
+  it('opens the worktree of the ticket it names', async () => {
+    vi.spyOn(app, 'ticket').mockReturnValue(makeTicket({ worktree: '/wt/csv' }));
+    await handleMessage({ type: 'open-folder', project, ticket: id }, ctx);
+    expect(errors()).toEqual([]);
+    expect(executeCommand).toHaveBeenCalledWith(
+      'vscode.openFolder',
+      { fsPath: '/wt/csv' },
+      { forceNewWindow: true },
+    );
+  });
+
+  it('says so when the ticket has no worktree', async () => {
+    vi.spyOn(app, 'ticket').mockReturnValue(makeTicket({ worktree: null }));
+    await handleMessage({ type: 'open-folder', project, ticket: id }, ctx);
+    expect(errors()).toEqual([`Ticket ${id} has no worktree yet.`]);
+    expect(executeCommand).not.toHaveBeenCalled();
+  });
+
+  it('takes no path, and open-file is gone', async () => {
+    await handleMessage({ type: 'open-folder', path: '/etc' }, ctx);
+    await handleMessage({ type: 'open-file', path: '/etc/passwd' }, ctx);
+    expect(errors()).toHaveLength(2);
+    expect(errors().every((t) => t.includes('does not understand'))).toBe(true);
+    expect(executeCommand).not.toHaveBeenCalled();
   });
 });

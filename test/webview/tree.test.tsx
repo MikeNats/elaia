@@ -90,4 +90,23 @@ describe('TicketFacts', () => {
     expect(screen.getByText(/AC-2/).textContent).toContain('○');
     expect(screen.getByText('2.5M')).toBeTruthy();
   });
+
+  it('Open folder names the ticket, not a path', () => {
+    const post = vi.fn();
+    const ticket = makeTicket({ id: 't-ready', worktree: '/wt/t-ready' });
+    render(
+      <TicketFacts
+        project={project}
+        ticket={ticket}
+        threadRef={{ project: project.path, thread: 't-ready' }}
+        post={post}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Open folder' }));
+    expect(post).toHaveBeenCalledWith({
+      type: 'open-folder',
+      project: project.path,
+      ticket: 't-ready',
+    });
+  });
 });
