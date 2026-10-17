@@ -127,6 +127,23 @@ describe('claude lines from subagents and errors', () => {
         },
       ],
     });
-    expect(done).toMatchObject({ denied: [{ tool: 'Bash', allow: 'Bash(npm:*),Bash(tee:*)' }] });
+    expect(done).toMatchObject({
+      denied: [{ tool: 'Bash', allow: 'Bash(NODE_ENV=test npm test),Bash(tee out.txt)' }],
+    });
+  });
+
+  it('builds allow rules from the full command, not the short summary', () => {
+    const command =
+      'cd /repo && npm run build && npm test -- --coverage && git add -A && ' +
+      'git commit -m "feat: block other spellings of risky commands in auto mode!" && ' +
+      'node scripts/check.mjs && make lint';
+    const [done] = line({
+      type: 'result',
+      subtype: 'success',
+      permission_denials: [{ tool_name: 'Bash', tool_input: { command } }],
+    });
+    expect(done).toMatchObject({
+      denied: [{ tool: 'Bash', allow: expect.stringContaining('Bash(make lint:*)') }],
+    });
   });
 });

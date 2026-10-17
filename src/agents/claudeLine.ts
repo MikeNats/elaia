@@ -2,7 +2,8 @@ import type { AgentEvent, Denial } from './types';
 import { askedQuestions, ASK_TOOL } from './askQuestion';
 import { limitsOf } from './claudeLimits';
 import { Line } from './claudeShape';
-import { allowRule, clip, describeRequest, summarizeInput } from './summary';
+import { allowRule } from './allowRule';
+import { clip, describeRequest, summarizeInput } from './summary';
 
 export function readLine(raw: string): Line | null {
   if (!raw.trim().startsWith('{')) return null;
