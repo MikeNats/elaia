@@ -62,6 +62,8 @@ async function runTurn(
       'error',
       'This chat is answering in another VS Code window. Wait for it there.',
     );
+  // Tickets made from now on are this turn's: only those go to their own chat.
+  const since = app.deps.now();
   try {
     // A button pressed while the old agent writes its handoff note goes to the fresh agent.
     await app.handingOver.get(key);
@@ -94,7 +96,7 @@ async function runTurn(
   }
   postSnapshot(app);
   // The agent may have run glafka commands; pick up what changed.
-  await afterTurn(app, ref);
+  await afterTurn(app, ref, { since, text });
   const next = takeQueued(app, ref);
   if (next) await runTurn(app, ref, next.text, { ...next, queued: true });
 }

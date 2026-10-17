@@ -22,6 +22,7 @@ let notified: string[];
 let fake: ReturnType<typeof fakeGlafkaDir>;
 let settings: Settings;
 let leader: boolean;
+let clock: string;
 
 function app() {
   // Each app keeps the lists of its own test: a background refresh may outlive its test.
@@ -33,7 +34,7 @@ function app() {
     post: (m) => myPosts.push(m),
     notify: (text) => myNotes.push(text),
     isLeader: () => leader,
-    now: () => '2026-10-13T10:00:00Z',
+    now: () => clock,
   });
 }
 
@@ -46,6 +47,7 @@ const threadTexts = (a: ReturnType<typeof app>, thread: string) =>
     .map((e) => e.text);
 
 beforeEach(() => {
+  clock = '2026-10-13T10:00:00Z';
   project = realpathSync(mkdtempSync(path.join(tmpdir(), 'elaia-app-project-')));
   mkdirSync(path.join(project, '.glafka'));
   posted = [];
@@ -253,5 +255,75 @@ describe('app', { timeout: 30_000 }, () => {
     settings = { ...settings, agent: 'command', agentCommand: 'cat' };
     await a.send(ref, 'and now?');
     expect(threadTexts(a, ref.thread).at(-1)).toContain('waits until the coder finishes');
+  });
+
+  // A ticket the main chat could have made: open, no spec, nothing said in its own chat.
+  const newIdea = (created?: string) =>
+    makeTicket({
+      id: '2026-10-13-new-idea',
+      title: 'new idea',
+      position: 'brainstorming',
+      planned: false,
+      specPath: null,
+      planPath: null,
+      ...(created ? { created } : {}),
+    });
+  const handedOff = '"new idea" goes on in its own chat: its questions, spec and plan come there.';
+
+  it('plans a ticket made during a main-chat turn in its own chat', async () => {
+    fakeClaude('turn');
+    const a = app();
+    await a.addProject(project);
+    fake.answer('poreia', { contract: 1, tickets: [newIdea('2026-10-13T10:00:05Z')] });
+    await a.send({ project, thread: 'project' }, 'add a new idea');
+    expect(threadTexts(a, 'project')).toContain(handedOff);
+    expect(threadTexts(a, '2026-10-13-new-idea')).toContain('Plan this ticket with me');
+    // Wait for the planning turn's answer, so it does not run on into the next test.
+    await vi.waitFor(() =>
+      expect(threadTexts(a, '2026-10-13-new-idea')).toContain('It says hello from file "a".'),
+    );
+  });
+
+  it('leaves a ticket made before the main-chat turn where it is', async () => {
+    fakeClaude('turn');
+    fake.answer('poreia', { contract: 1, tickets: [newIdea('2026-10-13T09:00:00Z')] });
+    const a = app();
+    await a.addProject(project);
+    await a.send({ project, thread: 'project' }, 'hi');
+    expect(threadTexts(a, 'project')).not.toContain(handedOff);
+    expect(posted).not.toContainEqual({
+      type: 'focus',
+      ref: { project, thread: '2026-10-13-new-idea' },
+    });
+  });
+
+  it('leaves a ticket with no created time where it is', async () => {
+    fakeClaude('turn');
+    const a = app();
+    await a.addProject(project);
+    fake.answer('poreia', { contract: 1, tickets: [newIdea()] });
+    await a.send({ project, thread: 'project' }, 'hi');
+    expect(threadTexts(a, 'project')).not.toContain(handedOff);
+  });
+
+  it("briefs the new ticket with the turn's own line, not one typed while it ran", async () => {
+    const claude = fakeClaude('turn');
+    const release = claude.hold();
+    const a = app();
+    await a.addProject(project);
+    fake.answer('poreia', { contract: 1, tickets: [newIdea('2026-10-13T10:00:05Z')] });
+    const main = { project, thread: 'project' };
+    const first = a.send(main, 'add a new idea');
+    await vi.waitFor(() => expect(claude.calls()).toHaveLength(1));
+    // The next turn starts after the ticket was made, so the ticket is not that turn's.
+    clock = '2026-10-13T10:00:10Z';
+    await a.send(main, 'and make it blue');
+    release();
+    await first;
+    const planning = () =>
+      claude.calls().find((c) => c.stdin.includes('Plan glafka ticket 2026-10-13-new-idea'));
+    await vi.waitFor(() => expect(planning()).toBeDefined());
+    expect(planning()?.stdin).toContain('What I asked for: add a new idea');
+    expect(planning()?.stdin).not.toContain('make it blue');
   });
 });

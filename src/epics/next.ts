@@ -15,3 +15,24 @@ export function readyToStart(epic: Epic): EpicTicket[] {
 }
 
 export const allMerged = (epic: Epic) => epic.tickets.every((t) => t.state === 'merged');
+
+export interface CancelledWait {
+  cancelled: EpicTicket;
+  waiting: EpicTicket[];
+}
+
+// Tickets that wait for a cancelled one: its dependsOn, or after it in an ordered epic.
+// They never start on their own, so the epic chat says so.
+export function waitingOnCancelled(epic: Epic): CancelledWait[] {
+  return epic.tickets
+    .map((cancelled, i) => ({
+      cancelled,
+      waiting: epic.tickets.filter(
+        (t, j) =>
+          t.state === 'waiting' &&
+          !t.ticketId &&
+          (t.dependsOn.includes(cancelled.key) || (epic.ordered && j > i)),
+      ),
+    }))
+    .filter(({ cancelled, waiting }) => cancelled.state === 'cancelled' && waiting.length > 0);
+}

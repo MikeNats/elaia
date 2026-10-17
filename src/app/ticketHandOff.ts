@@ -1,4 +1,4 @@
-import { PROJECT_THREAD, type ThreadRef } from '@/shared';
+import { PROJECT_THREAD, type TicketView } from '@/shared';
 import type { TicketBrief } from '@/workflow';
 import { chatTurn } from './chat';
 import { trustedEpics } from './epicTrust';
@@ -19,22 +19,28 @@ export function startGenesis(app: AppState, project: string, ticket: TicketBrief
 const inEpic = (app: AppState, project: string, id: string) =>
   trustedEpics(app, project).some(({ epic }) => epic?.tickets.some((t) => t.ticketId === id));
 
-// Your last words in the main chat: the ask the ticket was made from.
-function lastAsk(app: AppState, ref: ThreadRef): string | null {
-  const said = app.deps.store.threads.read(ref).filter((e) => e.kind === 'you');
-  return said.at(-1)?.text ?? null;
+// When a main-chat turn started, and the line it answered.
+export interface TurnStart {
+  since: string;
+  text: string;
 }
 
-// After a main-chat turn: a ticket it just made (no spec, not in an epic, nothing said in its
+// Made during this turn. An older ticket (from a terminal, or from before the project was
+// added) stays where it is. A ticket with no created time counts as old.
+const madeSince = (t: TicketView, since: string) =>
+  t.created != null && Date.parse(t.created) >= Date.parse(since);
+
+// After a main-chat turn: a ticket made during it (no spec, not in an epic, nothing said in its
 // own chat yet) moves to its own chat, which opens. An epic's tickets start from the epic.
-export function handOffNewTickets(app: AppState, project: string): void {
+export function handOffNewTickets(app: AppState, project: string, turn: TurnStart): void {
   const main = { project, thread: PROJECT_THREAD };
   for (const t of app.projects.get(project)?.tickets ?? []) {
+    if (!madeSince(t, turn.since)) continue;
     if (t.closed || t.planned || t.specPath || inEpic(app, project, t.id)) continue;
     const ref = { project, thread: t.id };
     if (app.deps.store.threads.read(ref).some((e) => e.kind === 'you')) continue;
     const title = t.title ?? t.id;
-    startGenesis(app, project, { id: t.id, title, brief: lastAsk(app, main) ?? title, epic: null });
+    startGenesis(app, project, { id: t.id, title, brief: turn.text || title, epic: null });
     const open = { kind: 'open' as const, label: 'Open ticket chat', value: t.id };
     const text = `"${title}" goes on in its own chat: its questions, spec and plan come there.`;
     record(app, main, [{ ...chatEntry(app, 'progress', text), actions: [open] }]);

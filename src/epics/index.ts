@@ -10,5 +10,5 @@ export {
   elaiaDocs,
   type EpicRead,
 } from './files';
-export { readyToStart, allMerged } from './next';
+export { readyToStart, allMerged, waitingOnCancelled, type CancelledWait } from './next';
 export { planHash } from './plan';
