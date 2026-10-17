@@ -10,6 +10,7 @@ import { explainStop, stopMoved } from './nextStep';
 import { offerPlans } from './planCard';
 import { offerGoneWorktrees } from './worktreeGone';
 import { offerTrust } from './trustCard';
+import { trustedNow } from './repoTrust';
 import type { AppState } from './types';
 
 // One refresh per project at a time. A request that lands mid-refresh runs once more after.
@@ -56,7 +57,9 @@ async function refreshOnce(app: AppState, projectPath: string): Promise<void> {
   const ended = leader ? await track(app, projectPath, tickets) : [];
   if (leader) {
     offerCuts(app, projectPath);
-    await runEpics(app, projectPath, new Set(tickets.map((t) => t.id)));
+    // Not trusted: making an epic's tickets would only fail again on every refresh.
+    if (trustedNow(app, projectPath))
+      await runEpics(app, projectPath, new Set(tickets.map((t) => t.id)));
   }
   // Before the plan cards: a Start pressed now must see the tickets as they are.
   state.tickets = tickets;

@@ -5,6 +5,8 @@ import { refresh } from './refresh';
 import { resultNote } from './resultNote';
 import { nextSetup, projectRef, stepsOf } from './setupCards';
 import { commitSetup } from './setupCommit';
+import { trustedNow } from './repoTrust';
+import { NOT_TRUSTED_SETUP, offerTrust } from './trustCard';
 import type { AppState } from './types';
 
 async function install(app: AppState, ref: ThreadRef): Promise<boolean> {
@@ -29,12 +31,17 @@ async function install(app: AppState, ref: ThreadRef): Promise<boolean> {
 // chat only gets what no command could do.
 export async function runSetup(app: AppState, project: string): Promise<void> {
   const ref = projectRef(project);
-  // Setup is under way: the card would only come back with each finished step.
-  app.setupAnswered.add(project);
-  stepsOf(app, project).clear();
   record(app, ref, [
     { at: app.deps.now(), kind: 'you', text: 'Set up', shown: true, source: 'chat' },
   ]);
+  // Set up runs glafka, which runs the repo's commands. The card stays until you trust it.
+  if (!trustedNow(app, project)) {
+    note(app, ref, 'error', NOT_TRUSTED_SETUP);
+    return offerTrust(app, project, true);
+  }
+  // Setup is under way: the card would only come back with each finished step.
+  app.setupAnswered.add(project);
+  stepsOf(app, project).clear();
   try {
     if (!(await install(app, ref))) return;
     const workflow = workflowOf(app, project);

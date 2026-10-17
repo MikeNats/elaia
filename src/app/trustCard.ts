@@ -2,6 +2,7 @@ import path from 'node:path';
 import type { Runnable, ThreadRef } from '@/shared';
 import { runHeld } from './chat';
 import { chatEntry, note, record } from './record';
+import { refresh } from './refresh';
 import { keepTrust, repoRunnables, trustedNow, trustHash, UNREADABLE } from './repoTrust';
 import { offerSetup } from './setup';
 import { projectRef } from './setupCards';
@@ -80,6 +81,8 @@ export async function trustRepo(app: AppState, project: string, hash: string): P
   app.trustDeclined.delete(project);
   note(app, ref, 'progress', TRUSTED);
   offerSetup(app, project);
+  // What waited for Trust goes on now: an epic's tickets, then your held messages.
+  await refresh(app, project);
   await runHeld(app, project);
 }
 

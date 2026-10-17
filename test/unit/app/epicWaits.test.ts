@@ -51,6 +51,14 @@ function approvedEpic(json: object): void {
 const epicLines = (a: ReturnType<typeof app>) =>
   a.store.threads.read({ project, thread: epicThread('polish') }).map((e) => e.text);
 
+// Its .glafka.json names a coder: press Trust on the card, as you would.
+async function trusted(a: ReturnType<typeof app>) {
+  const card = a.store.threads
+    .read({ project, thread: 'project' })
+    .findLast((e) => e.actions?.some((x) => x.kind === 'trust'));
+  await a.trust(project, card?.actions?.find((x) => x.kind === 'trust')?.value ?? '');
+}
+
 const B_AFTER_A = {
   title: 'Polish',
   tickets: [
@@ -80,6 +88,7 @@ describe('an epic ticket that waits on a cancelled one', { timeout: 30_000 }, ()
     approvedEpic(B_AFTER_A);
     const a = app();
     await a.addProject(project);
+    await trusted(a);
     await a.refresh(project);
     await a.refresh(project);
     expect(epicLines(a).filter((t) => t === B_WAITS)).toHaveLength(1);
@@ -94,6 +103,7 @@ describe('an epic ticket that waits on a cancelled one', { timeout: 30_000 }, ()
     approvedEpic(B_AFTER_A);
     const before = app();
     await before.addProject(project);
+    await trusted(before);
     const after = app();
     after.load();
     await after.refresh(project);
@@ -114,6 +124,7 @@ describe('an epic ticket that waits on a cancelled one', { timeout: 30_000 }, ()
     });
     const a = app();
     await a.addProject(project);
+    await trusted(a);
     expect(epicLines(a)).toContain(
       '"Fix C", "Fix D" and "Fix E" wait on "Fix B", which was cancelled. They do not start on their own: change the plan here to go on.',
     );
