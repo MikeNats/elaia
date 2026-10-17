@@ -20,6 +20,8 @@ export function takeQueued(app: AppState, ref: ThreadRef): QueuedTurn | null {
   const [next, ...rest] = app.queued.get(key) ?? [];
   if (rest.length > 0) app.queued.set(key, rest);
   else app.queued.delete(key);
+  // The count on screen goes down at once, even when this turn cannot run.
+  if (next) postSnapshot(app);
   return next ?? null;
 }
 
