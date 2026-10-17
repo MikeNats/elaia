@@ -3,6 +3,7 @@ import { folderFor } from './agent';
 import { allow } from './allow';
 import { send } from './chat';
 import { keepSoon } from './keep';
+import { knowWritten } from './known';
 import { note } from './record';
 import { threadPage } from './ticketIntro';
 import type { AppState } from './types';
@@ -20,6 +21,7 @@ export function clearChat(app: AppState, ref: ThreadRef): void {
   app.deps.store.threads.append(ref, [
     { at: app.deps.now(), kind: 'cleared', text: CLEARED, shown: true, source: 'chat' },
   ]);
+  knowWritten(app, ref, 1);
   keepSoon(app, ref);
   app.deps.post({ type: 'thread', ref, entries: threadPage(app, ref) });
 }

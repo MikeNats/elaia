@@ -5,10 +5,19 @@ import { watchFolder } from '@/track';
 // A safety net: some states (a stalled coder) change with time, not with a file write.
 const REFRESH_MS = 60_000;
 
-// One watcher per project on its .glafka/ folder, plus a slow timer for everything else.
-// `tick` runs before each timed refresh (the window renews its leader lease there).
+// The thread files and seen.json in the store every window shares. What any window writes there
+// reaches every other window through these.
+const THREAD_FILE = /^threads\/[^/]+\/[^/]+\.jsonl$/;
+const storeFile = (p: string) => THREAD_FILE.test(p) || p === 'seen.json';
+
+// One watcher per project on its .glafka/ folder, one on the shared store, plus a slow timer for
+// everything else. `tick` runs before each timed refresh (the window renews its leader lease there).
 export function createWatchers(app: App, tick: () => void, panelOpen: () => boolean = () => false) {
   const stops = new Map<string, () => void>();
+  // Every window, leader or not: a window only reads here, so two never write the same line.
+  const stopStore = watchFolder(app.store.root, (paths) => app.storeChanged(paths), {
+    relevant: storeFile,
+  });
   function sync(): void {
     const wanted = new Set(app.projectPaths());
     for (const project of wanted) {
@@ -40,6 +49,7 @@ export function createWatchers(app: App, tick: () => void, panelOpen: () => bool
     sync,
     dispose(): void {
       clearInterval(timer);
+      stopStore();
       for (const stop of stops.values()) stop();
       stops.clear();
     },

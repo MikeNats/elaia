@@ -1,5 +1,5 @@
 import { createTurns } from '@/chat';
-import { PROJECT_THREAD, type ThreadRef } from '@/shared';
+import { PROJECT_THREAD, threadKey, type ThreadRef } from '@/shared';
 import { chatActions } from './chatActions';
 import { ticketActions } from './ticketChat';
 import { addProject, loadProjects, removeProject, syncProjects } from './projects';
@@ -13,6 +13,7 @@ import { keepAllNow } from './keep';
 import { dropQueued } from './queue';
 import { setViewing } from './attention';
 import { refresh } from './refresh';
+import { storeChanged } from './storeWatch';
 import { threadPage } from './ticketIntro';
 import type { AppDeps, AppState } from './types';
 
@@ -44,6 +45,8 @@ function newState(deps: AppDeps): AppState {
     disposed: false,
     liveTimer: null,
     viewing: null,
+    known: new Map(),
+    opened: new Set(),
     limitsAsk: { running: false, failed: false, lastAt: null },
   };
 }
@@ -71,9 +74,12 @@ export function createApp(deps: AppDeps) {
       await refresh(app, p);
     },
     openThread: (ref: ThreadRef) => {
+      app.opened.add(threadKey(ref));
       if (ref.thread === PROJECT_THREAD) offerSetup(app, ref.project);
       deps.post({ type: 'thread', ref, entries: threadPage(app, ref) });
     },
+    // The store's thread files or seen.json changed, in this window or another one.
+    storeChanged: (paths: string[]) => storeChanged(app, paths),
     // The webview says which thread is on screen and whether it is scrolled to the bottom.
     viewing: (ref: ThreadRef | null, atBottom: boolean) => {
       if (setViewing(app, ref, atBottom)) postSnapshot(app);

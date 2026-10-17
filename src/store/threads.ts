@@ -19,6 +19,13 @@ export function threadsStore(root: string) {
         .filter((name) => name.endsWith('.jsonl'))
         .map((name) => name.slice(0, -'.jsonl'.length));
     },
+    // A changed file under the store root back to its thread, when its project is one of these.
+    refOf(relativePath: string, projects: string[]): ThreadRef | null {
+      const [top, key, name, ...rest] = relativePath.split('/');
+      if (top !== 'threads' || !key || !name?.endsWith('.jsonl') || rest.length > 0) return null;
+      const project = projects.find((p) => projectKey(p) === key);
+      return project ? { project, thread: name.slice(0, -'.jsonl'.length) } : null;
+    },
     append(ref: ThreadRef, entries: ThreadEntry[]): void {
       appendLines(
         file(ref),

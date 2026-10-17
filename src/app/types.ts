@@ -87,6 +87,11 @@ export interface AppState {
   // Dots for the tree, by thread key; and the thread on screen, scrolled to the bottom.
   attention: Map<string, ThreadAttention>;
   viewing: string | null;
+  // Lines of each thread file this window has seen (read at start or written itself), by thread
+  // key. A file with more lines than this was changed by another window.
+  known: Map<string, number>;
+  // Threads this window's panels have opened, by thread key. A change elsewhere posts them again.
+  opened: Set<string>;
   // Chats whose full agent is writing its handoff note. A new message waits for it.
   handingOver: Map<string, Promise<void>>;
   // The ask for your plan's usage: running now, whether the last one you clicked for failed, and
