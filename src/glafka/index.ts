@@ -18,3 +18,4 @@ export {
   type SetupKey,
 } from './setup';
 export { glafkaSetupSteps } from './setupSteps';
+export { glafkaTrust } from './runnables';

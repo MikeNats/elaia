@@ -16,6 +16,7 @@ import {
   WORKTREES_DIR,
   type SetupKey,
   glafkaSetupSteps,
+  glafkaTrust,
 } from '@/glafka';
 import {
   GLAFKA_NEW_TICKET_RULES,
@@ -76,6 +77,7 @@ export function glafkaWorkflow(bin: string): Workflow {
     docsDir,
     baseRef: baseRefFor,
     agentCommand: agentCommandFor,
+    ...glafkaTrust,
     setupStatus,
     install: (project, platform) => client.install(project, platform),
     ...glafkaSetupSteps(bin),

@@ -1,4 +1,4 @@
-import type { TicketView, TokenRow } from '@/shared';
+import type { Runnable, TicketView, TokenRow } from '@/shared';
 
 export interface SetupItem {
   key: string;
@@ -90,6 +90,10 @@ export interface Workflow {
   docsDir(project: string): string;
   baseRef(project: string): string;
   agentCommand(project: string, setting: string): string | null;
+  // The repo files it reads commands from, and what each one can make run. Elaia lists these
+  // on the trust card; `runnables` is pure, Elaia reads the files.
+  trustFiles: string[];
+  runnables(file: string, json: unknown): Runnable[];
   // Setting a project up.
   setupStatus(project: string): SetupItem[];
   install(project: string, platform: string): Promise<CommandResult>;
