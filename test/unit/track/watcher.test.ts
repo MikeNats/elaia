@@ -41,6 +41,26 @@ describe('watchFolder', () => {
     expect(relevant.mock.results[logCall]?.value).toBe(false);
   });
 
+  it('says which files changed, each once', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'elaia-watch-'));
+    mkdirSync(path.join(dir, 'threads', 'p'), { recursive: true });
+    const onChange = vi.fn();
+    const stop = watchFolder(dir, onChange, { settleMs: 50 });
+    const file = path.join('threads', 'p', 'T.jsonl');
+    await vi.waitFor(
+      () => {
+        writeFileSync(path.join(dir, file), `${Date.now()}\n`);
+        writeFileSync(path.join(dir, file), `${Date.now()}\n`);
+        expect(onChange).toHaveBeenCalledWith(expect.arrayContaining([file]));
+      },
+      { timeout: 4000, interval: 200 },
+    );
+    stop();
+    for (const [paths] of onChange.mock.calls as [string[]][]) {
+      expect(new Set(paths).size).toBe(paths.length);
+    }
+  });
+
   it('does nothing for a folder that does not exist yet', () => {
     const stop = watchFolder('/no/such/folder', vi.fn(), { settleMs: 50 });
     expect(() => stop()).not.toThrow();
