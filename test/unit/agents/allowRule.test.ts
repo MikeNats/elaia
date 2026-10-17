@@ -80,4 +80,19 @@ describe('splitRules', () => {
   it('splits plain rules as before', () => {
     expect(splitRules('Skill,Bash(npm:*)')).toEqual(['Skill', 'Bash(npm:*)']);
   });
+
+  it('does not let an open quote swallow the rules after it', () => {
+    expect(splitRules("Bash(echo it's),Edit")).toEqual(["Bash(echo it's)", 'Edit']);
+  });
+
+  it('does not let a trailing backslash swallow the rules after it', () => {
+    expect(splitRules('Bash(echo a\\),Edit')).toEqual(['Bash(echo a\\)', 'Edit']);
+  });
+
+  it('keeps a ), inside quotes in its rule', () => {
+    expect(splitRules('Bash(sh -c "echo a), b"),Read')).toEqual([
+      'Bash(sh -c "echo a), b")',
+      'Read',
+    ]);
+  });
 });

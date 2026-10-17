@@ -279,6 +279,16 @@ describe('app', { timeout: 30_000 }, () => {
     expect(threadTexts(a, ref.thread).at(-1)).toContain('waits until the coder finishes');
   });
 
+  it('sees an edit rule after a rule with an open quote while the coder works', async () => {
+    fakeClaude('turn');
+    fake.answer('poreia', { contract: 1, tickets: [makeTicket({ coder: { state: 'running' } })] });
+    const a = app();
+    await a.addProject(project);
+    const ref = { project, thread: '2026-10-13-add-csv-export' };
+    await a.allow(ref, "Bash(echo it's),Edit");
+    expect(threadTexts(a, ref.thread).at(-1)).toContain('Edits stay blocked');
+  });
+
   // A ticket the main chat could have made: open, no spec, nothing said in its own chat.
   const newIdea = (created?: string) =>
     makeTicket({
