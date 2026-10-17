@@ -78,7 +78,7 @@ export function activate(context: vscode.ExtensionContext): ElaiaApi {
         slot.adoptChat(restored, state);
       },
     }),
-    vscode.workspace.registerTextDocumentContentProvider(BASE_SCHEME, baseContent),
+    vscode.workspace.registerTextDocumentContentProvider(BASE_SCHEME, baseContent(app)),
     // Not in the menu: the panel's "Open diff" button and the smoke test use it.
     vscode.commands.registerCommand('elaia.openReview', (project: string, ticket: string) =>
       openReview(app, { project, thread: ticket }, slot.showChat),

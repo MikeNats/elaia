@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { z } from 'zod';
+import type { ThreadRef } from '@/shared';
 
 const run = promisify(execFile);
 const MAX_OUTPUT = 64 * 1024 * 1024;
@@ -42,4 +44,34 @@ export async function changesSince(
     .filter(Boolean)
     .map((file): Change => ({ before: null, after: file }));
   return { from, changes: [...tracked, ...untracked] };
+}
+
+// The diff link names the ticket and a commit, never a folder: Elaia looks the folder up itself.
+const BaseQuery = z.strictObject({ project: z.string(), thread: z.string(), ref: z.string() });
+// A full commit id, as git merge-base prints it (sha-1 or sha-256).
+const COMMIT = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+
+export const baseQuery = (ticket: ThreadRef, ref: string): string =>
+  JSON.stringify({ project: ticket.project, thread: ticket.thread, ref });
+
+function parseQuery(query: string) {
+  try {
+    return BaseQuery.safeParse(JSON.parse(query)).data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// A file as it was at a commit. A link Elaia did not make reads as empty and runs no git:
+// bad JSON, an unknown ticket, or a ref that is not a commit id (such as --output=x).
+export async function baseText(
+  query: string,
+  file: string,
+  worktreeOf: (ticket: ThreadRef) => string | null,
+): Promise<string> {
+  const q = parseQuery(query);
+  if (!q || !COMMIT.test(q.ref)) return '';
+  const worktree = worktreeOf({ project: q.project, thread: q.thread });
+  if (!worktree) return '';
+  return git(worktree, ['show', `${q.ref}:${file}`]).catch(() => '');
 }

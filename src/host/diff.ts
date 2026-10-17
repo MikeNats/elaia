@@ -27,10 +27,8 @@ export async function openReview(
   }
   const resources = changes.map((c) => {
     const file = c.after ?? c.before ?? '';
-    const before = baseUri(worktree, c.before ? from : '', c.before ?? file);
-    const after = c.after
-      ? vscode.Uri.file(path.join(worktree, c.after))
-      : baseUri(worktree, '', file);
+    const before = baseUri(ref, c.before ? from : '', c.before ?? file);
+    const after = c.after ? vscode.Uri.file(path.join(worktree, c.after)) : baseUri(ref, '', file);
     return [vscode.Uri.file(path.join(worktree, file)), before, after];
   });
   await vscode.commands.executeCommand('vscode.setEditorLayout', REVIEW_LAYOUT);
