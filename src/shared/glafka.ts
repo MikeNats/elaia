@@ -49,6 +49,8 @@ export const TicketViewSchema = z.object({
   criteria: z.array(z.object({ id: z.string(), text: z.string() })),
   qa: QaSchema.nullable(),
   summary: z.object({ rank: z.number(), text: z.string() }),
+  // When glafka made the ticket. An older glafka does not print it.
+  created: z.string().nullable().optional(),
 });
 export type TicketView = z.infer<typeof TicketViewSchema>;
 

@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { handOffNewTickets } from './ticketHandOff';
+import { handOffNewTickets, type TurnStart } from './ticketHandOff';
 import { PROJECT_THREAD, type ThreadEntry, type ThreadRef } from '@/shared';
 import type { SetupItem } from '@/workflow';
 import { note, record, workflowOf } from './record';
@@ -61,10 +61,10 @@ export const setupActions = (app: AppState) => ({
 
 // After a chat turn: pick up what the agent changed. In the project chat, setup goes on if it
 // is under way, with no new chat turn from here.
-export async function afterTurn(app: AppState, ref: ThreadRef): Promise<void> {
+export async function afterTurn(app: AppState, ref: ThreadRef, turn: TurnStart): Promise<void> {
   await refresh(app, ref.project);
   // A ticket the main chat just made is planned in its own chat, not here.
-  if (ref.thread === PROJECT_THREAD) handOffNewTickets(app, ref.project);
+  if (ref.thread === PROJECT_THREAD) handOffNewTickets(app, ref.project, turn);
   const steps = app.setupSteps.get(ref.project);
   if (ref.thread === PROJECT_THREAD && steps && !steps.has('complete'))
     await nextSetup(app, ref.project, false);

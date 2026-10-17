@@ -1,4 +1,4 @@
-import { PROJECT_THREAD, type ThreadRef } from '@/shared';
+import { PROJECT_THREAD, type ThreadRef, type TicketView } from '@/shared';
 import type { TicketBrief } from '@/workflow';
 import { chatTurn } from './chat';
 import { trustedEpics } from './epicTrust';
@@ -25,11 +25,23 @@ function lastAsk(app: AppState, ref: ThreadRef): string | null {
   return said.at(-1)?.text ?? null;
 }
 
-// After a main-chat turn: a ticket it just made (no spec, not in an epic, nothing said in its
+// When a main-chat turn started, and the line it answered.
+export interface TurnStart {
+  since: string;
+  text: string;
+}
+
+// Made during this turn. An older ticket (from a terminal, or from before the project was
+// added) stays where it is. A ticket with no created time counts as old.
+const madeSince = (t: TicketView, since: string) =>
+  t.created != null && Date.parse(t.created) >= Date.parse(since);
+
+// After a main-chat turn: a ticket made during it (no spec, not in an epic, nothing said in its
 // own chat yet) moves to its own chat, which opens. An epic's tickets start from the epic.
-export function handOffNewTickets(app: AppState, project: string): void {
+export function handOffNewTickets(app: AppState, project: string, turn: TurnStart): void {
   const main = { project, thread: PROJECT_THREAD };
   for (const t of app.projects.get(project)?.tickets ?? []) {
+    if (!madeSince(t, turn.since)) continue;
     if (t.closed || t.planned || t.specPath || inEpic(app, project, t.id)) continue;
     const ref = { project, thread: t.id };
     if (app.deps.store.threads.read(ref).some((e) => e.kind === 'you')) continue;
