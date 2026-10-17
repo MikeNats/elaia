@@ -1,6 +1,6 @@
 import type { ThreadRef } from '@/shared';
 import { chatTurn } from './chat';
-import { chatEntry, note, record, workflowOf } from './record';
+import { chatEntry, messageOf, note, record, workflowOf } from './record';
 import { refresh } from './refresh';
 import { startTicket } from './ticketStart';
 import type { AppState } from './types';
@@ -35,7 +35,13 @@ async function endTicket(
   how: 'close' | 'cancel',
 ): Promise<void> {
   record(app, ref, [chatEntry(app, 'you', said)]);
-  const result = await workflowOf(app, ref.project)[how](ref.project, ref.thread);
+  const workflow = workflowOf(app, ref.project);
+  // glafka refused, or could not run at all: both show their reason here.
+  const result = await workflow[how](ref.project, ref.thread).catch((err: unknown) => ({
+    code: 1,
+    stdout: '',
+    stderr: messageOf(err),
+  }));
   if (result.code !== 0) {
     const why = (result.stderr || result.stdout).trim().split('\n').slice(0, 8).join('\n');
     note(

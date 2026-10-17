@@ -198,4 +198,26 @@ describe('errors show in the chat', { timeout: 15_000 }, () => {
     await a.setupStep(project, 'workspace', 'keep');
     expect(notFound(a, main)).toHaveLength(2);
   });
+
+  it('Close ticket says why it failed, every time you press it', async () => {
+    const a = app();
+    await a.addProject(project);
+    const ref = { project, thread: TICKET };
+    await a.closeTicket(ref);
+    await a.closeTicket(ref);
+    const failed = notFound(a, ref);
+    expect(failed).toHaveLength(2);
+    expect(failed[0]).toMatch(/^The ticket was not closed:\nglafka was not found/);
+  });
+
+  it('Cancel ticket says why it failed, every time you press it', async () => {
+    const a = app();
+    await a.addProject(project);
+    const ref = { project, thread: TICKET };
+    await a.cancelTicket(ref);
+    await a.cancelTicket(ref);
+    const failed = notFound(a, ref);
+    expect(failed).toHaveLength(2);
+    expect(failed[0]).toMatch(/^The ticket was not cancelled:\nglafka was not found/);
+  });
 });
