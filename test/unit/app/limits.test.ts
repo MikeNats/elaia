@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp, type Settings } from '@/app';
 import { createStore } from '@/store';
 import { ToHostSchema, type ToWebview } from '@/shared';
@@ -30,6 +30,11 @@ const usages = () =>
   posted.flatMap((m) => (m.type === 'snapshot' && m.snapshot.usage ? [m.snapshot.usage] : []));
 const lastUsage = () => usages().at(-1);
 
+// Waits in real time until the fake has started and read its prompt. setImmediate is not faked.
+async function started(claude: { calls(): unknown[] }): Promise<void> {
+  while (claude.calls().length === 0) await new Promise((r) => setImmediate(r));
+}
+
 // A report from a minute ago: fresh, so the timer alone would not ask again.
 const FRESH = {
   provider: 'Claude',
@@ -51,6 +56,10 @@ beforeEach(() => {
     allowedTools: [],
     autoAdvance: true,
   };
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('usage refresh', { timeout: 30_000 }, () => {
@@ -154,5 +163,34 @@ describe('usage refresh', { timeout: 30_000 }, () => {
     const a = app();
     await a.refreshUsage();
     expect(claude.calls()).toHaveLength(1);
+  });
+
+  it('stops a refresh that hangs after 30 seconds, says it failed, and can ask again', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const claude = fakeClaude('limits');
+    claude.hang();
+    const a = app();
+    const asking = a.refreshUsage();
+    await started(claude);
+    await vi.advanceTimersByTimeAsync(29_999);
+    expect(lastUsage()?.refreshing).toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    await asking;
+    expect(lastUsage()).toMatchObject({ refreshing: false, failed: true });
+    fakeClaude('limits');
+    await a.refreshUsage();
+    expect(lastUsage()).toMatchObject({ refreshing: false, failed: false });
+  });
+
+  it('stops a timer ask that hangs, and stays silent', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const claude = fakeClaude('limits');
+    claude.hang();
+    const a = app();
+    const asking = a.refreshLimits();
+    await started(claude);
+    await vi.advanceTimersByTimeAsync(30_000);
+    await asking;
+    expect(lastUsage()).toMatchObject({ refreshing: false, failed: false });
   });
 });

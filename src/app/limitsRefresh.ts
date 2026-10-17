@@ -7,6 +7,9 @@ import type { AppState } from './types';
 // Your plan's usage only arrives inside a reply. Older than this, Elaia asks for one itself.
 const STALE_MS = 10 * 60_000;
 
+// A claude that hangs is stopped after this, so the spinner never turns for ever.
+const ASK_TIMEOUT_MS = 30_000;
+
 // The smallest reply that still carries the report: Haiku, one word, no tools, no project files,
 // no personal setup. About $0.0007. Only Claude reports its limits today.
 const ASK = [
@@ -55,7 +58,10 @@ export async function refreshLimits(app: AppState, opts: { force?: boolean } = {
         }
       },
     });
+    // stop() ends the whole process group, so no stuck claude stays behind.
+    const timer = setTimeout(() => run.stop(), ASK_TIMEOUT_MS);
     await run.done;
+    clearTimeout(timer);
   } finally {
     ask.running = false;
     if (reported) ask.failed = false;

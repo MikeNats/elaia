@@ -23,19 +23,25 @@ export function fakeClaude(fixture: 'turn' | 'deny' | 'resume-fail' | 'limits') 
     new URL(`../fixtures/claude/${fixture}.jsonl`, import.meta.url),
   );
   delete process.env.FAKE_CLAUDE_FAIL;
+  delete process.env.FAKE_CLAUDE_HANG;
   delete process.env.FAKE_CLAUDE_RESUME_FIXTURE;
   delete process.env.FAKE_CLAUDE_HOLD;
   delete process.env.FAKE_CLAUDE_DELAY_MS;
   return {
     calls(): FakeCall[] {
       if (!existsSync(log)) return [];
+      // The file can exist a moment before the fake writes its line.
       return readFileSync(log, 'utf8')
-        .trim()
         .split('\n')
+        .filter((l) => l.trim() !== '')
         .map((l) => JSON.parse(l) as FakeCall);
     },
     fail() {
       process.env.FAKE_CLAUDE_FAIL = '1';
+    },
+    // Reads the prompt, then never answers until it is stopped.
+    hang() {
+      process.env.FAKE_CLAUDE_HANG = '1';
     },
     // Every --resume fails the way a cleaned-away session does.
     resumeFails() {
