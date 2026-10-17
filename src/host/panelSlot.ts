@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import type { ThreadRef, ToWebview } from '@/shared';
 import { createChatPanels } from './chatPanels';
+import { focusQueue } from './focusQueue';
 import type { TreeHost } from './launcher';
 import type { MessageContext } from './messages';
 import { ownWindowState } from './ownWindow';
@@ -37,20 +38,21 @@ const notifier = (focus: (ref: ThreadRef) => void) => (text: string, ref: Thread
 };
 
 // The main Elaia panel (if open), the ticket chat panels and the sidebar tree. Every update
-// goes to all of them. A thread to focus waits until the main panel says it is ready.
+// goes to all of them. A thread to focus waits for the main panel's ready only while its
+// page is loading.
 export function createPanelSlot(context: vscode.ExtensionContext) {
   let panel: PanelHost | null = null;
-  let pending: ThreadRef | null = null;
+  const queue = focusQueue((ref) => panel?.post({ type: 'focus', ref }));
   const tree = treeLink();
   let wiring: Wiring | null = null;
   const own = ownWindowState(context, () => panel);
   const closed = () => {
     panel = null;
+    queue.reset();
     own.closed();
   };
   const ready = () => {
-    if (pending) panel?.post({ type: 'focus', ref: pending });
-    pending = null;
+    queue.ready();
     own.tell();
   };
   const base = () => {
@@ -62,9 +64,9 @@ export function createPanelSlot(context: vscode.ExtensionContext) {
     panel.reveal();
   };
   const focus = (ref: ThreadRef) => {
-    pending = ref;
+    const visible = panel?.visible() ?? false;
     show();
-    panel?.post({ type: 'focus', ref });
+    queue.focus(ref, visible);
     tree.opened(ref);
   };
   const extra = () => ({ showChat, focusThread: focus, opened: tree.opened, ownWindow: own.move });

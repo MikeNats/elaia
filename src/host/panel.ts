@@ -8,6 +8,8 @@ export const PANEL_TYPE = 'elaia.panel';
 export interface PanelHost {
   post(message: ToWebview): void;
   reveal(): void;
+  // On screen now. A hidden panel's page is gone; showing it loads the page again.
+  visible(): boolean;
 }
 
 function webviewRoot(context: vscode.ExtensionContext) {
@@ -73,5 +75,5 @@ export function adoptPanel(
     ctx.app.viewing(null, false);
     onClose();
   });
-  return { post, reveal: () => panel.reveal() };
+  return { post, reveal: () => panel.reveal(), visible: () => panel.visible };
 }
