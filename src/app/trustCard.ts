@@ -52,17 +52,18 @@ export function offerTrust(app: AppState, project: string, force = false): void 
   if (declined && !force) return;
   const ref = projectRef(project);
   const items = repoRunnables(app, project);
-  const text = trustCardText(project, items);
+  const hash = trustHash(items);
   const thread = app.deps.store.threads.read(ref);
   const shown = thread.slice(thread.findLastIndex((e) => e.kind === 'cleared') + 1);
-  const last = shown.filter((e) => e.actions?.some((a) => a.kind === 'trust')).at(-1);
-  if (!declined && last?.text === text) return;
+  const last = shown.flatMap((e) => e.actions ?? []).findLast((a) => a.kind === 'trust');
+  // By hash, not text: the card can read the same while what Trust checks has changed.
+  if (!declined && last?.value === hash) return;
   app.trustDeclined.delete(project);
   record(app, ref, [
     {
-      ...chatEntry(app, 'approval', text),
+      ...chatEntry(app, 'approval', trustCardText(project, items)),
       actions: [
-        { kind: 'trust', label: 'Trust', value: trustHash(items) },
+        { kind: 'trust', label: 'Trust', value: hash },
         { kind: 'not-trust', label: 'Not now', value: project },
       ],
     },

