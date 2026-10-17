@@ -164,7 +164,7 @@
             "auto"
           ],
           "default": "auto",
-          "description": "ask: a card for commands outside your allow list. auto: agents run commands without asking; Elaia's block rules still hold, and git push, rm -rf, sudo, curl, wget and npm publish stay blocked."
+          "description": "ask: a card for commands outside your allow list. auto: agents run commands without asking. Elaia's block rules still hold, and the usual forms of git push, rm -r, sudo, curl, wget and npm publish are blocked. This is not a sandbox: a command written another way, for example inside sh -c, can still run."
         },
         "elaia.handoffAt": {
           "type": "number",

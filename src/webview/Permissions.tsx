@@ -2,7 +2,7 @@ import type { Post } from './host';
 
 const SAYS = {
   ask: 'A card asks you before a command outside your allow list.',
-  auto: 'Agents run commands without asking. git push, rm -rf, sudo, curl, wget and npm publish stay blocked.',
+  auto: 'Agents run commands without asking. The usual forms of git push, rm -r, sudo, curl, wget and npm publish are blocked. This is not a sandbox.',
 };
 
 // Ask or Auto, for every chat. It is the VS Code setting elaia.permissions.

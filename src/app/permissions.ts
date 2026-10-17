@@ -1,22 +1,35 @@
+import { headsOf, spellings } from '@/agents';
 import type { AgentChoice } from '@/chat';
 import type { ThreadRef } from '@/shared';
 import { agentFor } from './agent';
 import { forEpicHandOff } from './epicHandOff';
 import type { AppState } from './types';
 
-// Blocked even in Auto: they reach outside the repo, or cannot be undone.
+// Each head (git, /usr/bin/git, env git, xargs -n1 git) with each rest, as `X` and `X *`:
+// a rule with two `*` misses the bare command, and a bare `git push` still pushes.
+const risky = (program: string, rests: string[]) =>
+  rests.flatMap((rest) => [
+    ...spellings(headsOf(program), rest),
+    ...(rest.endsWith('*') ? [] : spellings(headsOf(program), rest === '' ? '*' : `${rest} *`)),
+  ]);
+
+// Blocked even in Auto: they reach outside the repo, or cannot be undone. Claude matches rules
+// as text, so these stop the usual spellings, not every one.
 export const RISKY = [
-  'Bash(git push:*)',
-  'Bash(rm -rf:*)',
-  'Bash(rm -fr:*)',
-  'Bash(sudo:*)',
-  'Bash(curl:*)',
-  'Bash(wget:*)',
-  'Bash(npm publish:*)',
+  // `-* push` is git -C . push or git -c x=y push. Not `* push`: that blocks
+  // `git commit -m "fix push"`.
+  ...risky('git', ['push', '-* push']),
+  // Every recursive delete: an agent has no terminal, so `rm -r` asks nothing, like `rm -rf`.
+  ...risky('rm', ['-r*', '-R*', '-fr*', '-fR*', '* -r*', '* -R*', '*--recursive*']),
+  ...risky('sudo', ['']),
+  ...risky('curl', ['']),
+  ...risky('wget', ['']),
+  ...risky('npm', ['publish']),
 ];
 
 // Auto: the agent runs commands without asking. Elaia's own block rules still hold (checked:
-// deny rules apply in bypassPermissions), and the risky commands above stay blocked.
+// deny rules apply in bypassPermissions), and the usual forms of the risky commands above are
+// blocked. This is not a sandbox: a command written another way can still run.
 export function withPermissions(app: AppState, agent: AgentChoice): AgentChoice {
   if (agent.kind !== 'claude') return agent;
   // While a coder works the chat only reads. Auto would still let Bash write (`cat > file`), and
