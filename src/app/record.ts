@@ -1,5 +1,5 @@
 import { modelsFor } from '@/agents';
-import { workflowFor } from '@/workflow';
+import { guarded, workflowFor } from '@/workflow';
 import type { Snapshot, ThreadEntry, ThreadRef } from '@/shared';
 import { copiesForEpic } from './epicMirror';
 import { keepSoon } from './keep';
@@ -7,12 +7,13 @@ import { knowWritten } from './known';
 import { attentionView, noteAttention } from './attention';
 import { liveView, withLiveTokens } from './liveAgents';
 import { queuedView } from './queue';
+import { trustedNow } from './repoTrust';
 import { usageView } from './usage';
 import type { AppState } from './types';
 
-// The ticket tool this project uses. Elaia's core asks it, never a tool by name.
+// The project's tool. Commands that can run the repo's own commands wait for your Trust.
 export const workflowOf = (app: AppState, project: string) =>
-  workflowFor(project, app.deps.settings());
+  guarded(workflowFor(project, app.deps.settings()), () => trustedNow(app, project));
 
 // Keep entries in the thread and show them live.
 export function record(app: AppState, ref: ThreadRef, entries: ThreadEntry[]): void {

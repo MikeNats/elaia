@@ -35,3 +35,4 @@ export function workflowFor(project: string, settings: WorkflowSettings): Workfl
   );
   return installed ?? MAKERS[settings.workflow](settings);
 }
+export { guarded, NotTrustedError, NOT_TRUSTED_GLAFKA } from './guarded';
