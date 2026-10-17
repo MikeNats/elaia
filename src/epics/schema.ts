@@ -25,6 +25,33 @@ export const EpicTicketSchema = z.preprocess(
 );
 export type EpicTicket = z.infer<typeof EpicTicketSchema>;
 
+// The first dependsOn loop, as keys from the repeated one back to itself. A self-dependency
+// and an unknown key have their own messages, so they are left out here.
+function findLoop(tickets: { key: string; dependsOn: string[] }[]): string[] | null {
+  const deps = new Map(tickets.map((t) => [t.key, t.dependsOn.filter((d) => d !== t.key)]));
+  const done = new Set<string>();
+  const path: string[] = [];
+  const visit = (key: string): string[] | null => {
+    if (done.has(key)) return null;
+    const at = path.indexOf(key);
+    if (at >= 0) return [...path.slice(at), key];
+    path.push(key);
+    for (const dep of deps.get(key) ?? []) {
+      if (!deps.has(dep)) continue;
+      const loop = visit(dep);
+      if (loop) return loop;
+    }
+    path.pop();
+    done.add(key);
+    return null;
+  };
+  for (const t of tickets) {
+    const loop = visit(t.key);
+    if (loop) return loop;
+  }
+  return null;
+}
+
 export const EpicSchema = z
   .object({
     title: z.string().min(1),
@@ -52,5 +79,27 @@ export const EpicSchema = z
     }
     if (keys.size !== epic.tickets.length)
       ctx.addIssue({ code: 'custom', message: 'two tickets share a key' });
+    // Nothing in a loop ever starts: each ticket waits for another one in it.
+    for (const t of epic.tickets)
+      if (t.dependsOn.includes(t.key))
+        ctx.addIssue({ code: 'custom', message: `ticket "${t.key}" depends on itself` });
+    // In an ordered epic, a later ticket already waits for every earlier one.
+    if (epic.ordered) {
+      const place = new Map(epic.tickets.map((t, i) => [t.key, i]));
+      epic.tickets.forEach((t, i) => {
+        for (const dep of t.dependsOn)
+          if ((place.get(dep) ?? -1) > i)
+            ctx.addIssue({
+              code: 'custom',
+              message: `ticket "${t.key}" depends on "${dep}", which comes after it in an ordered epic`,
+            });
+      });
+    }
+    const loop = findLoop(epic.tickets);
+    if (loop)
+      ctx.addIssue({
+        code: 'custom',
+        message: `tickets depend on each other in a loop: ${loop.map((k) => `"${k}"`).join(' → ')}`,
+      });
   });
 export type Epic = z.infer<typeof EpicSchema>;
