@@ -52,4 +52,12 @@ describe('guarded', () => {
     trusted = true;
     await expect(g.install('/p', 'claude')).resolves.toEqual(OK);
   });
+
+  it('tells the caller once for each refused call, and not for reads', async () => {
+    const refused = vi.fn();
+    const g = guarded(base(), () => false, refused);
+    await expect(g.close('/p', 'T')).rejects.toBeInstanceOf(NotTrustedError);
+    g.planFile('T');
+    expect(refused).toHaveBeenCalledOnce();
+  });
 });

@@ -58,8 +58,16 @@ type Call = (...args: unknown[]) => unknown;
 
 // The workflow with every command that can run the repo's own commands refused until
 // `trusted()` says yes. Asked at each call, so a Trust pressed later counts at once.
-export function guarded(workflow: Workflow, trusted: () => boolean): Workflow {
-  const refuse = () => Promise.reject(new NotTrustedError());
+// `refused` hears of each refusal: the app shows the trust card again.
+export function guarded(
+  workflow: Workflow,
+  trusted: () => boolean,
+  refused: () => void = () => undefined,
+): Workflow {
+  const refuse = () => {
+    refused();
+    return Promise.reject(new NotTrustedError());
+  };
   const out: Record<string, unknown> = { ...workflow };
   for (const [key, kind] of Object.entries(KIND) as [Method, string][]) {
     const real = workflow[key] as Call;

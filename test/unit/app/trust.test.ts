@@ -272,6 +272,24 @@ describe('glafka on a repo you have not trusted', { timeout: 15_000 }, () => {
     // A refused vima is not handed to the agent to explain.
     expect(errors(a, ref)).not.toContain(NOT_TRUSTED_TURN);
   });
+
+  it('after Not now, Start, Close and vima say why and show the card again', async () => {
+    write('.glafka.json', { agents: { coder: 'claude -p' } });
+    fake.answer('poreia', { contract: 1, tickets: [makeTicket({ planned: false })] });
+    const a = app();
+    await a.addProject(project);
+    const ref = { project, thread: TICKET };
+    a.notNowTrust(project);
+    await a.startTicket(ref, TICKET);
+    expect(errors(a, ref)).toContain(NOT_TRUSTED_GLAFKA);
+    expect(trustCards(a)).toHaveLength(2);
+    a.notNowTrust(project);
+    await a.closeTicket(ref);
+    expect(trustCards(a)).toHaveLength(3);
+    a.notNowTrust(project);
+    await a.advance(project, TICKET);
+    expect(trustCards(a)).toHaveLength(4);
+  });
 });
 
 describe("Elaia's own setup", { timeout: 15_000 }, () => {

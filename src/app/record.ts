@@ -8,12 +8,18 @@ import { attentionView, noteAttention } from './attention';
 import { liveView, withLiveTokens } from './liveAgents';
 import { queuedView } from './queue';
 import { trustedNow } from './repoTrust';
+import { offerTrust } from './trustCard';
 import { usageView } from './usage';
 import type { AppState } from './types';
 
-// The project's tool. Commands that can run the repo's own commands wait for your Trust.
+// The project's tool. Commands that can run the repo's own commands wait for your Trust; a
+// refused one (Start, Close, next step, even after Not now) shows the trust card again.
 export const workflowOf = (app: AppState, project: string) =>
-  guarded(workflowFor(project, app.deps.settings()), () => trustedNow(app, project));
+  guarded(
+    workflowFor(project, app.deps.settings()),
+    () => trustedNow(app, project),
+    () => offerTrust(app, project, true),
+  );
 
 // Keep entries in the thread and show them live.
 export function record(app: AppState, ref: ThreadRef, entries: ThreadEntry[]): void {
