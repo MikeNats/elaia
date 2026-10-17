@@ -33,6 +33,15 @@ describe('projects', () => {
 });
 
 describe('threads', () => {
+  it('finds the thread of a changed store file, only for projects it is given', () => {
+    const file = path.relative(root, store.threads.file(ref));
+    expect(store.threads.refOf(file, ['/repos/other', ref.project])).toEqual(ref);
+    expect(store.threads.refOf(file, ['/repos/other'])).toBeNull();
+    expect(store.threads.refOf(`${file}.tmp`, [ref.project])).toBeNull();
+    expect(store.threads.refOf('runs/x.log', [ref.project])).toBeNull();
+    expect(store.threads.refOf('seen.json', [ref.project])).toBeNull();
+  });
+
   it('appends and reads entries per thread', () => {
     store.threads.append(ref, [entry('one'), entry('two', false)]);
     store.threads.append({ ...ref, thread: 'project' }, [entry('other')]);
