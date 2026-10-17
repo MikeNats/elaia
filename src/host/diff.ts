@@ -2,7 +2,8 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 import type { App } from '@/app';
 import type { ThreadRef } from '@/shared';
-import { baseUri, changesSince } from './gitFiles';
+import { changesSince } from './git';
+import { baseUri } from './gitFiles';
 
 // Diff on top (70%), the ticket chat underneath (30%).
 const REVIEW_LAYOUT = { orientation: 1, groups: [{ size: 0.7 }, { size: 0.3 }] };
