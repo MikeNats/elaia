@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { settingsFrom, type ConfigSource } from '@/app';
+import { REPO_SETTINGS, SettingsSchema, settingsFrom, type ConfigSource } from '@/app';
 
 interface Property {
   scope?: string;
@@ -68,5 +68,27 @@ describe('settingsFrom', () => {
 
   it('names the setting when your User value is wrong', () => {
     expect(() => settingsFrom(config({ agent: 'evil' }))).toThrow(/elaia\.agent/);
+  });
+});
+
+describe('package.json settings', () => {
+  it('gives every setting a repo may not set the machine scope', () => {
+    const open = Object.entries(properties)
+      .filter(([name, p]) => !REPO_SETTINGS.has(keyOf(name)) && p.scope !== 'machine')
+      .map(([name]) => name);
+    expect(open).toEqual([]);
+  });
+
+  it('has the same settings as SettingsSchema', () => {
+    const declared = Object.keys(properties).map(keyOf).sort();
+    expect(declared).toEqual(Object.keys(SettingsSchema.shape).sort());
+  });
+
+  it('keeps Elaia off in a folder you have not trusted', () => {
+    const trust = pkg.capabilities?.untrustedWorkspaces;
+    expect(trust?.supported).toBe(false);
+    expect(trust?.description).toBe(
+      'Elaia runs agents and commands in your repos, so it needs a trusted folder.',
+    );
   });
 });
