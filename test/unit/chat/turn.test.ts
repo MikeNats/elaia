@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTurns, contextPrompt } from '@/chat';
 import { createStore, type Store } from '@/store';
 import type { ThreadEntry, ThreadRef } from '@/shared';
@@ -32,6 +32,10 @@ beforeEach(() => {
   store = createStore(mkdtempSync(path.join(tmpdir(), 'elaia-chat-')));
   folder = realpathSync(mkdtempSync(path.join(tmpdir(), 'elaia-folder-')));
   emitted = [];
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('chat turns', { timeout: 20_000 }, () => {
@@ -71,6 +75,16 @@ describe('chat turns', { timeout: 20_000 }, () => {
     store.sessions.set(ref, folder, 'saved-session');
     await turns.run(deps(), { ref, folder, text: 'again', prompt: 'again', agent });
     expect(fake.calls()[0]?.args.join(' ')).toContain('--resume saved-session');
+  });
+
+  it('hands your login to the agent, but not the nested marker', async () => {
+    vi.stubEnv('CLAUDE_CODE_OAUTH_TOKEN', 'tok-123');
+    vi.stubEnv('CLAUDECODE', '1');
+    const fake = fakeClaude('turn');
+    await createTurns().run(deps(), { ref, folder, text: 'hi', prompt: 'hi', agent });
+    const env = fake.calls()[0]?.env;
+    expect(env?.CLAUDE_CODE_OAUTH_TOKEN).toBe('tok-123');
+    expect(env).not.toHaveProperty('CLAUDECODE');
   });
 
   it('turns a crash into an error entry', async () => {

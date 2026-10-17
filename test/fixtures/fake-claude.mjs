@@ -19,7 +19,9 @@ function reply() {
 const chunks = [];
 process.stdin.on('data', (c) => chunks.push(c));
 process.stdin.on('end', () => {
-  const call = { args: process.argv.slice(2), cwd: process.cwd(), stdin: Buffer.concat(chunks).toString() };
+  // The CLAUDE* variables it was started with, so a test can see what a child inherits.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k.startsWith('CLAUDE')));
+  const call = { args: process.argv.slice(2), cwd: process.cwd(), stdin: Buffer.concat(chunks).toString(), env };
   appendFileSync(process.env.FAKE_CLAUDE_LOG, `${JSON.stringify(call)}\n`);
   // A held turn answers only once this file exists, so a test can act while the turn runs.
   const hold = process.env.FAKE_CLAUDE_HOLD;

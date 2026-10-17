@@ -10,6 +10,8 @@ export interface FakeCall {
   args: string[];
   cwd: string;
   stdin: string;
+  // The CLAUDE* variables it was started with.
+  env: Record<string, string>;
 }
 
 // Points the fake at a recorded turn and returns how it was called.

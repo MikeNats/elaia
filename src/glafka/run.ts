@@ -35,14 +35,32 @@ export function runGlafka(
   });
 }
 
-// Markers a child must not inherit. Claude's make an agent think it is nested; Node's IPC
-// channel (we run inside a forked host) keeps a child `node` alive forever.
-const DROP = ['CLAUDECODE', 'NODE_CHANNEL_FD', 'NODE_CHANNEL_SERIALIZATION_MODE'];
+// Set by a running Claude Code session for the programs it starts. A child that inherits them
+// thinks it is nested. Node's IPC channel (we run inside a forked host) keeps a child `node`
+// alive forever. Your login and provider settings (CLAUDE_CODE_OAUTH_TOKEN,
+// CLAUDE_CODE_USE_BEDROCK, ...) are yours, so they stay.
+const DROP = [
+  'CLAUDECODE',
+  'CLAUDE_CODE_ENTRYPOINT',
+  'CLAUDE_CODE_CHILD_SESSION',
+  'CLAUDE_CODE_SESSION_ID',
+  'CLAUDE_CODE_SESSION_ATTENDED',
+  'CLAUDE_CODE_EXECPATH',
+  'CLAUDE_CODE_MESSAGING_SOCKET',
+  'CLAUDE_CODE_MESSAGING_TOKEN',
+  'CLAUDE_CODE_BRIDGE_SESSION_ID',
+  'CLAUDE_CODE_REMOTE',
+  'CLAUDE_CODE_REMOTE_SESSION_ID',
+  'CLAUDE_AGENT_SDK_VERSION',
+  'CLAUDE_EFFORT',
+  'CLAUDE_PID',
+  'CLAUDE_JOB_DIR',
+  'NODE_CHANNEL_FD',
+  'NODE_CHANNEL_SERIALIZATION_MODE',
+];
 
 export function cleanEnv(): NodeJS.ProcessEnv {
   const env = { ...process.env };
-  for (const key of Object.keys(env)) {
-    if (DROP.includes(key) || key.startsWith('CLAUDE_CODE_')) delete env[key];
-  }
+  for (const key of DROP) delete env[key];
   return env;
 }
