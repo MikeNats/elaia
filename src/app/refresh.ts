@@ -55,11 +55,12 @@ async function refreshOnce(app: AppState, projectPath: string): Promise<void> {
   // Only one VS Code window keeps the threads and runs epics; the others just show the state.
   const leader = app.deps.isLeader();
   const ended = leader ? await track(app, projectPath, tickets) : [];
+  // Not trusted: an epic's tickets or the next step would only fail again on every refresh, and
+  // after Not now the card must not come back without your own action.
+  const trusted = trustedNow(app, projectPath);
   if (leader) {
     offerCuts(app, projectPath);
-    // Not trusted: making an epic's tickets would only fail again on every refresh.
-    if (trustedNow(app, projectPath))
-      await runEpics(app, projectPath, new Set(tickets.map((t) => t.id)));
+    if (trusted) await runEpics(app, projectPath, new Set(tickets.map((t) => t.id)));
   }
   // Before the plan cards: a Start pressed now must see the tickets as they are.
   state.tickets = tickets;
@@ -69,7 +70,7 @@ async function refreshOnce(app: AppState, projectPath: string): Promise<void> {
   state.tokens = await workflow.tokens(projectPath).catch(() => state.tokens);
   state.chatTokens = app.deps.store.tokens.read(projectPath);
   postSnapshot(app);
-  if (app.deps.settings().autoAdvance)
+  if (trusted && app.deps.settings().autoAdvance)
     for (const { id, roles } of ended) void autoAdvance(app, projectPath, id, roles);
 }
 

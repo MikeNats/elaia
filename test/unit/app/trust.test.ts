@@ -170,6 +170,23 @@ describe('the trust card', { timeout: 15_000 }, () => {
     expect(trustCards(a)).toHaveLength(1);
     expect(texts(a, mainRef(), 'progress')).toContain(NOT_NOW);
   });
+
+  it('Not now: a run that ends on refresh does not bring the card back', async () => {
+    settings.autoAdvance = true;
+    write('.glafka.json', { agents: { coder: 'claude -p' } });
+    fake.answer('vima', { contract: 1, results: [] });
+    const a = app();
+    await a.addProject(project);
+    a.notNowTrust(project);
+    const run = path.join(project, '.glafka', 'tickets', TICKET, 'runs', 'coder');
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, 'log'), '{"type":"result","result":"done"}\n');
+    writeFileSync(path.join(run, 'exit-code'), '0');
+    await a.refresh(project);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(trustCards(a)).toHaveLength(1);
+    expect(fake.calls().some((c) => c.split('\t')[1]?.startsWith('vima'))).toBe(false);
+  });
 });
 
 describe('agent turns before Trust', { timeout: 15_000 }, () => {

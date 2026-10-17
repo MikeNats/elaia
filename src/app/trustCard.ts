@@ -1,11 +1,11 @@
-import path from 'node:path';
-import type { Runnable, ThreadRef } from '@/shared';
+import type { ThreadRef } from '@/shared';
 import { runHeld } from './chat';
 import { chatEntry, note, record } from './record';
 import { refresh } from './refresh';
-import { keepTrust, repoRunnables, trustedNow, trustHash, UNREADABLE } from './repoTrust';
+import { keepTrust, repoRunnables, trustedNow, trustHash } from './repoTrust';
 import { offerSetup } from './setup';
 import { projectRef } from './setupCards';
+import { trustCardText } from './trustText';
 import type { TurnOptions } from './turnOnce';
 import type { AppState } from './types';
 
@@ -17,32 +17,6 @@ export const TRUSTED = 'Trusted. Elaia asks again when this list changes.';
 export const NOT_NOW = 'Nothing from this repo runs until you press Trust.';
 export const TRUST_CHANGED =
   'What this repo can run changed since that card. Read the new card, then press Trust there.';
-
-// In code font, on one line. A backtick inside gets a wider fence.
-const code = (run: string) => {
-  const one = run.replace(/\r?\n/g, ' ↵ ');
-  return one.includes('`') ? `\`\` ${one} \`\`` : `\`${one}\``;
-};
-const line = (r: Runnable) =>
-  r.what === UNREADABLE ? `- ${r.what}` : `- ${r.what}: ${code(r.run)}`;
-
-// What this repo can make run, by file.
-export function trustCardText(project: string, items: Runnable[]): string {
-  const files = [...new Set(items.map((i) => i.file))];
-  const groups = files.flatMap((file) => [
-    '',
-    file,
-    ...items.filter((i) => i.file === file).map(line),
-  ]);
-  return [
-    `**Trust ${path.basename(project)}?**`,
-    '',
-    'This repo can make these run on your computer:',
-    ...groups,
-    '',
-    'Press Trust only if you trust where this repo came from.',
-  ].join('\n');
-}
 
 // The card in the main chat while the repo can run things you have not trusted. Not twice in a
 // row since the last Clear. After Not now only your own action (force) shows it again.
