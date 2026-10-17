@@ -1,4 +1,4 @@
-import { EDIT_TOOLS, splitRules } from '@/agents';
+import { EDIT_TOOLS } from '@/agents';
 import type { ThreadEntry, ThreadRef } from '@/shared';
 import { coderWorking } from './agent';
 import { send } from './chat';
@@ -13,11 +13,17 @@ const chatEntry = (app: AppState, kind: ThreadEntry['kind'], text: string): Thre
   source: 'chat',
 });
 
-const isEditTool = (rule: string) => (EDIT_TOOLS as readonly string[]).includes(rule);
+// An edit rule anywhere in the joined rules: `Edit`, or `Edit(...)` for some files. It checks
+// every comma piece, not splitRules' rules: the command `echo x),Edit,y)` saves
+// `Bash(echo x),Edit,y))`, which splitRules reads as two rules but Claude may read with a bare Edit.
+const hasEditRule = (rules: string) =>
+  rules
+    .split(',')
+    .some((piece) => (EDIT_TOOLS as readonly string[]).includes(piece.trim().split('(')[0] ?? ''));
 
 // You allowed a tool the agent was refused. Remember it for this thread, and let it carry on.
 export async function allow(app: AppState, ref: ThreadRef, rule: string): Promise<void> {
-  if (coderWorking(app, ref) && !splitRules(rule).some((r) => isEditTool(r))) {
+  if (coderWorking(app, ref) && !hasEditRule(rule)) {
     app.deps.store.sessions.allow(ref, rule);
     record(app, ref, [
       chatEntry(app, 'you', `Allowed ${rule}.`),
