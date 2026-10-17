@@ -80,6 +80,27 @@ describe('filter', () => {
     expect(card?.actions?.[0]).toEqual({ kind: 'allow', label: 'Allow and retry', value: rule });
   });
 
+  // Claude reads every * in a rule as any text: `Bash(rm *.log)` also allows `rm -rf ~ x.log`.
+  it.each(['Bash(rm *.log)', 'Bash(sh -c "ls *")'])(
+    'does not call %s only that command',
+    (rule) => {
+      const [card] = toEntries(
+        {
+          kind: 'done',
+          sessionId: 's',
+          isError: false,
+          tokens: null,
+          error: null,
+          denied: [{ tool: 'Bash', summary: 'x', wants: 'Run a command', allow: rule }],
+        },
+        at,
+      );
+      const shown = rule.slice('Bash('.length, -1);
+      expect(card?.text).not.toContain('only `');
+      expect(card?.text).toContain(`Allows in this chat: \`${shown}\`, where * can be any text`);
+    },
+  );
+
   it('shows a failed turn as an error', () => {
     const entries = toEntries(
       { kind: 'done', sessionId: null, isError: true, tokens: null, denied: [], error: 'boom' },

@@ -42,7 +42,11 @@ export function plainRule(rule: string): string {
   if (FILE_TOOLS.has(rule)) return 'file changes';
   const command = rule.match(/^Bash\((.+):\*\)$/s)?.[1];
   if (command) return `\`${command}\``;
-  // A rule with no `:*` allows that one command and nothing more.
+  // A rule with no `:*` allows that one command and nothing more, unless it holds a `*`:
+  // Claude reads every `*` as any text, so `rm *.log` also allows `rm -rf ~ x.log`.
   const exact = rule.match(/^Bash\((.+)\)$/s)?.[1];
-  return exact ? `only \`${line(exact)}\`` : rule;
+  if (!exact) return rule;
+  return exact.includes('*')
+    ? `\`${line(exact)}\`, where * can be any text`
+    : `only \`${line(exact)}\``;
 }
