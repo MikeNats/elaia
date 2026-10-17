@@ -40,3 +40,29 @@ function ruleFor(part: string): string[] {
     ? [`Bash(${program} ${word}:*)`]
     : exact;
 }
+
+// Saved rules come joined by commas. A comma inside ( ), and a bracket inside quotes there,
+// belong to their rule: `Bash(sh -c "echo a, b")` stays one rule.
+export function splitRules(joined: string): string[] {
+  const rules: string[] = [];
+  let current = '';
+  let depth = 0;
+  let quote: string | null = null;
+  let escaped = false;
+  for (const c of joined) {
+    if (escaped) escaped = false;
+    else if (c === '\\') escaped = true;
+    else if (quote !== null) {
+      if (c === quote) quote = null;
+    } else if (c === ',' && depth === 0) {
+      rules.push(current);
+      current = '';
+      continue;
+    } else if (c === '(') depth++;
+    else if (c === ')') depth = Math.max(0, depth - 1);
+    else if ((c === '"' || c === "'") && depth > 0) quote = c;
+    current += c;
+  }
+  rules.push(current);
+  return rules.filter((rule) => rule !== '');
+}

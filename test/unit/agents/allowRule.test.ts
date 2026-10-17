@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allowRule } from '@/agents/allowRule';
+import { allowRule, splitRules } from '@/agents/allowRule';
 
 const bash = (command: string) => allowRule('Bash', { command });
 
@@ -62,5 +62,22 @@ describe('allowRule', () => {
 
   it('names any other tool as it is', () => {
     expect(allowRule('Write', { file_path: 'a.ts' })).toBe('Write');
+  });
+});
+
+describe('splitRules', () => {
+  it('keeps a comma inside ( ) in its rule', () => {
+    expect(splitRules('Bash(sh -c "echo a, b"),Bash(npm test:*)')).toEqual([
+      'Bash(sh -c "echo a, b")',
+      'Bash(npm test:*)',
+    ]);
+  });
+
+  it('keeps a bracket inside quotes in its rule', () => {
+    expect(splitRules('Bash(echo "("),Read')).toEqual(['Bash(echo "(")', 'Read']);
+  });
+
+  it('splits plain rules as before', () => {
+    expect(splitRules('Skill,Bash(npm:*)')).toEqual(['Skill', 'Bash(npm:*)']);
   });
 });

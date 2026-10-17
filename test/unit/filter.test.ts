@@ -63,6 +63,23 @@ describe('filter', () => {
     expect(card?.actions?.[1]).toMatchObject({ kind: 'reply', label: 'No' });
   });
 
+  it('shows an exact rule with a comma as one rule', () => {
+    const rule = 'Bash(sh -c "echo a, b")';
+    const [card] = toEntries(
+      {
+        kind: 'done',
+        sessionId: 's',
+        isError: false,
+        tokens: null,
+        error: null,
+        denied: [{ tool: 'Bash', summary: 'x', wants: 'Run a command', allow: rule }],
+      },
+      at,
+    );
+    expect(card?.text).toContain('Allows in this chat: only `sh -c "echo a, b"`');
+    expect(card?.actions?.[0]).toEqual({ kind: 'allow', label: 'Allow and retry', value: rule });
+  });
+
   it('shows a failed turn as an error', () => {
     const entries = toEntries(
       { kind: 'done', sessionId: null, isError: true, tokens: null, denied: [], error: 'boom' },

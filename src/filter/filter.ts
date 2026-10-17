@@ -1,4 +1,4 @@
-import { plainRule, type AgentEvent, type Denial } from '@/agents';
+import { plainRule, splitRules, type AgentEvent, type Denial } from '@/agents';
 import type { ThreadEntry } from '@/shared';
 import { splitChoices } from './choices';
 
@@ -76,7 +76,7 @@ const listItem = (n: number, text: string) => {
 // Everything one answer was refused, as one card and one decision.
 export function approvalFor(denied: Denial[], at: string): ThreadEntry[] {
   if (denied.length === 0) return [];
-  const rules = [...new Set(denied.flatMap((d) => d.allow.split(',')))];
+  const rules = [...new Set(denied.flatMap((d) => splitRules(d.allow)))];
   const things = denied.length === 1 ? '1 thing' : `${denied.length} things`;
   const text = [
     `**Claude needs your OK for ${things}:**`,

@@ -1,4 +1,4 @@
-import { EDIT_TOOLS } from '@/agents';
+import { EDIT_TOOLS, splitRules } from '@/agents';
 import type { ThreadEntry, ThreadRef } from '@/shared';
 import { coderWorking } from './agent';
 import { send } from './chat';
@@ -17,7 +17,7 @@ const isEditTool = (rule: string) => (EDIT_TOOLS as readonly string[]).includes(
 
 // You allowed a tool the agent was refused. Remember it for this thread, and let it carry on.
 export async function allow(app: AppState, ref: ThreadRef, rule: string): Promise<void> {
-  if (coderWorking(app, ref) && !rule.split(',').some((r) => isEditTool(r))) {
+  if (coderWorking(app, ref) && !splitRules(rule).some((r) => isEditTool(r))) {
     app.deps.store.sessions.allow(ref, rule);
     record(app, ref, [
       chatEntry(app, 'you', `Allowed ${rule}.`),

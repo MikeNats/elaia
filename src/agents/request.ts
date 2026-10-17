@@ -40,6 +40,9 @@ export function plainRule(rule: string): string {
   if (rule === 'Skill') return 'skills';
   if (rule === 'Bash') return 'any command';
   if (FILE_TOOLS.has(rule)) return 'file changes';
-  const command = rule.match(/^Bash\((.+):\*\)$/)?.[1];
-  return command ? `\`${command}\`` : rule;
+  const command = rule.match(/^Bash\((.+):\*\)$/s)?.[1];
+  if (command) return `\`${command}\``;
+  // A rule with no `:*` allows that one command and nothing more.
+  const exact = rule.match(/^Bash\((.+)\)$/s)?.[1];
+  return exact ? `only \`${line(exact)}\`` : rule;
 }
