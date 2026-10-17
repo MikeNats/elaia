@@ -1,6 +1,7 @@
 import type { App } from '@/app';
 import { ToHostSchema, type ThreadRef, type ToHost, type ToWebview } from '@/shared';
 import { openReview } from './diff';
+import { setupAction } from './setupActions';
 import { vscodeAction } from './vscodeActions';
 
 export interface MessageContext {
@@ -23,6 +24,7 @@ export interface MessageContext {
 async function route(msg: ToHost, ctx: MessageContext): Promise<void> {
   const { app } = ctx;
   if (await vscodeAction(msg, ctx)) return;
+  if (await setupAction(msg, ctx)) return;
   switch (msg.type) {
     case 'ready':
       app.snapshot();
@@ -62,19 +64,6 @@ async function route(msg: ToHost, ctx: MessageContext): Promise<void> {
       return app.cancelTicket({ project: msg.project, thread: msg.ticket });
     case 'start-ticket':
       return app.startTicket({ project: msg.project, thread: msg.thread }, msg.ticket);
-    case 'setup':
-      await app.setup(msg.project);
-      return ctx.projectsChanged();
-    case 'skip-setup':
-      return app.skipSetup(msg.project);
-    case 'trust':
-      await app.trust(msg.project, msg.hash);
-      return ctx.projectsChanged();
-    case 'not-trust':
-      return app.notNowTrust(msg.project);
-    case 'setup-step':
-      await app.setupStep(msg.project, msg.step, msg.choice);
-      return ctx.projectsChanged();
     case 'approve-epic':
       return app.approveEpic(msg.project, msg.epic, msg.approval);
     case 'drop-files':

