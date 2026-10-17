@@ -96,6 +96,16 @@ describe('a deleted project folder', { timeout: 30_000 }, () => {
     );
     expect(existsSync(project)).toBe(false);
   });
+
+  it('gets no dropped file, and the main chat says why', async () => {
+    const a = app();
+    await a.addProject(project);
+    rmSync(project, { recursive: true, force: true });
+    a.saveInbox(project, [{ name: 'notes.txt', data: Buffer.from('hi').toString('base64') }]);
+    a.dispose();
+    expect(existsSync(project)).toBe(false);
+    expect(threadTexts(a, 'project').at(-1)).toBe(`The project folder is missing: ${project}`);
+  });
 });
 
 describe('the .elaia folder', { timeout: 30_000 }, () => {
