@@ -29,13 +29,14 @@ export function walk(dir: string, want: (name: string) => boolean = wanted): str
   });
 }
 
-// A docs folder counts only when it really sits inside the project. `docs/glafka` could be a
-// link to your home folder, and every chat may read these docs without asking.
+// A docs folder counts only when no link sits between the project and it: a link could point
+// back at the project (docs/glafka -> ..) or anywhere on the machine, and every chat may read
+// these docs without asking. The project folder itself may be a link (/tmp on macOS).
 export function insideProject(project: string, dir: string): boolean {
   if (!existsSync(dir)) return false;
-  const base = realpathSync(project);
-  const real = realpathSync(dir);
-  return real === base || real.startsWith(`${base}${path.sep}`);
+  const rel = path.relative(project, dir);
+  if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) return false;
+  return realpathSync(dir) === path.join(realpathSync(project), rel);
 }
 
 const titleOf = (text: string, fallback: string) =>
