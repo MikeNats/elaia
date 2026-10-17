@@ -15,7 +15,7 @@ describe('allowRule', () => {
       'node scripts/check.mjs && make lint';
     expect(chain).toHaveLength(183);
     expect(bash(chain)).toBe(
-      'Bash(npm run:*),Bash(npm test:*),Bash(git add:*),Bash(git commit:*),' +
+      'Bash(cd /repo),Bash(npm run:*),Bash(npm test:*),Bash(git add:*),Bash(git commit:*),' +
         'Bash(node scripts/check.mjs),Bash(make lint:*)',
     );
   });

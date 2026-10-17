@@ -16,25 +16,24 @@ const commandOf = (input: unknown): string => {
   return typeof command === 'string' ? command.trim() : '';
 };
 
-// The rules that let this call through, built from the full command. Claude checks each
-// command of a chain on its own, so `cd x && npm test` needs `Bash(npm test:*)`, not `Bash(cd:*)`.
+// The rules that let this call through, one per command of the chain, built from the full
+// command. Claude checks each command on its own, and a `cd` outside the project asks too.
 export function allowRule(name: string, input: unknown): string {
   if (name !== 'Bash') return name;
   const command = commandOf(input);
   const rules = [...new Set(splitCommands(command).flatMap(ruleFor))];
-  // Nothing left (only `cd`, say): the exact command, never `Bash`, which allows every command.
+  // Nothing left (an empty command): the exact command, never `Bash`, which allows every command.
   return (rules.length > 0 ? rules : [`Bash(${command})`]).join(',');
 }
 
 // One command's rule: program and subcommand (`Bash(git commit:*)`, so `git push` stays out),
-// the exact command, or none for `cd`. Past an unknown VAR=value Claude matches no wider rule.
+// or the exact command (`cd` too: `Bash(cd:*)` would allow a cd anywhere). Past an unknown VAR=value Claude matches no wider rule.
 function ruleFor(part: string): string[] {
   const exact = [`Bash(${part})`];
   const words = part.split(/\s+/);
   if (ASSIGNMENT.test(words[0] ?? '')) return exact;
   const [program, word] = unwrap(words);
-  if (program === 'cd') return [];
-  if (program === undefined || RUNS_CODE.has(program)) return exact;
+  if (program === undefined || program === 'cd' || RUNS_CODE.has(program)) return exact;
   if (RUNS_CODE_SUBCOMMANDS.has(`${program} ${word}`)) return exact;
   return PLAIN_PROGRAM.test(program) && word !== undefined && PLAIN_WORD.test(word)
     ? [`Bash(${program} ${word}:*)`]

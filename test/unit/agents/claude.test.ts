@@ -128,7 +128,9 @@ describe('claude lines from subagents and errors', () => {
       ],
     });
     expect(done).toMatchObject({
-      denied: [{ tool: 'Bash', allow: 'Bash(NODE_ENV=test npm test),Bash(tee out.txt)' }],
+      denied: [
+        { tool: 'Bash', allow: 'Bash(cd /repo),Bash(NODE_ENV=test npm test),Bash(tee out.txt)' },
+      ],
     });
   });
 
