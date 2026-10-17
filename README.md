@@ -146,18 +146,21 @@ It searches docs, epics, handoff notes and chats. `show` reads only `docs/glafka
 
 ## Settings
 
-| Setting                | Default                                 | What                                                                                   |
-| ---------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- |
-| `elaia.workflow`       | `glafka`                                | the ticket tool for a new project; more tools can plug in                              |
-| `elaia.glafkaPath`     | `glafka`                                | the glafka command                                                                     |
-| `elaia.platform`       | `claude`                                | platform for `glafka install`                                                          |
-| `elaia.agent`          | `claude`                                | `claude`, or `command` for any other CLI                                               |
-| `elaia.claudePath`     | `claude`                                | the Claude Code command                                                                |
-| `elaia.agentCommand`   | empty                                   | for `command`: a CLI that reads the prompt on stdin. Empty = glafka's `agents.default` |
-| `elaia.permissionMode` | `acceptEdits`                           | Claude permission mode for chat                                                        |
-| `elaia.allowedTools`   | skills, glafka, git read, ls/tree/mkdir | tools the chat may use without asking                                                  |
-| `elaia.autoAdvance`    | `true`                                  | run `glafka vima` when a background run ends                                           |
-| `elaia.handoffAt`      | `70`                                    | % full at which a chat's agent hands over to a fresh one. `0` = never                  |
+| Setting                | Default                                 | What                                                                                                                               |
+| ---------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `elaia.workflow`       | `glafka`                                | the ticket tool for a new project; more tools can plug in                                                                          |
+| `elaia.glafkaPath`     | `glafka`                                | the glafka command                                                                                                                 |
+| `elaia.platform`       | `claude`                                | platform for `glafka install`                                                                                                      |
+| `elaia.agent`          | `claude`                                | `claude`, or `command` for any other CLI                                                                                           |
+| `elaia.claudePath`     | `claude`                                | the Claude Code command                                                                                                            |
+| `elaia.agentCommand`   | empty                                   | for `command`: a CLI that reads the prompt on stdin. Empty = glafka's `agents.default`                                             |
+| `elaia.permissionMode` | `acceptEdits`                           | Claude permission mode for chat                                                                                                    |
+| `elaia.allowedTools`   | skills, glafka, git read, ls/tree/mkdir | tools the chat may use without asking                                                                                              |
+| `elaia.autoAdvance`    | `true`                                  | run `glafka vima` when a background run ends                                                                                       |
+| `elaia.permissions`    | `auto`                                  | `ask`: a card for each command outside your allow list. `auto`: agents run commands without asking; Elaia's block rules still hold |
+| `elaia.handoffAt`      | `70`                                    | % full at which a chat's agent hands over to a fresh one. `0` = never                                                              |
+
+Only your User settings can set these, except `platform` and `handoffAt`. A repo's `.vscode/settings.json` cannot change what Elaia runs.
 
 ## Limits today
 

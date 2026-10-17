@@ -37,6 +37,12 @@
     "onWebviewPanel:elaia.ticketChat",
     "onView:elaia.launcher"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Elaia runs agents and commands in your repos, so it needs a trusted folder."
+    }
+  },
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -67,6 +73,7 @@
       "properties": {
         "elaia.workflow": {
           "type": "string",
+          "scope": "machine",
           "enum": [
             "glafka"
           ],
@@ -75,6 +82,7 @@
         },
         "elaia.glafkaPath": {
           "type": "string",
+          "scope": "machine",
           "default": "glafka",
           "description": "The glafka command. Elaia runs it inside each project."
         },
@@ -93,6 +101,7 @@
         },
         "elaia.agent": {
           "type": "string",
+          "scope": "machine",
           "enum": [
             "claude",
             "command"
@@ -102,16 +111,19 @@
         },
         "elaia.claudePath": {
           "type": "string",
+          "scope": "machine",
           "default": "claude",
           "description": "The Claude Code command."
         },
         "elaia.agentCommand": {
           "type": "string",
+          "scope": "machine",
           "default": "",
           "description": "Shell command for `command` agents. Empty = the project's glafka `agents.default`."
         },
         "elaia.permissionMode": {
           "type": "string",
+          "scope": "machine",
           "enum": [
             "default",
             "acceptEdits",
@@ -122,6 +134,7 @@
         },
         "elaia.allowedTools": {
           "type": "array",
+          "scope": "machine",
           "items": {
             "type": "string"
           },
@@ -139,11 +152,13 @@
         },
         "elaia.autoAdvance": {
           "type": "boolean",
+          "scope": "machine",
           "default": true,
           "description": "Run `glafka vima` when a background run ends."
         },
         "elaia.permissions": {
           "type": "string",
+          "scope": "machine",
           "enum": [
             "ask",
             "auto"
