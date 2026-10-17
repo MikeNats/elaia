@@ -11,6 +11,7 @@ import { FAKE_CLAUDE, fakeClaude } from '../../support/fakeClaude';
 const NOW = '2026-10-13T10:00:00Z';
 let posted: ToWebview[];
 let settings: Settings;
+let clock: string;
 
 function app() {
   const myPosts = posted;
@@ -20,7 +21,7 @@ function app() {
     post: (m) => myPosts.push(m),
     notify: () => undefined,
     isLeader: () => true,
-    now: () => NOW,
+    now: () => clock,
   });
 }
 
@@ -37,6 +38,7 @@ const FRESH = {
 };
 
 beforeEach(() => {
+  clock = NOW;
   posted = [];
   settings = {
     workflow: 'glafka',
@@ -114,5 +116,43 @@ describe('usage refresh', { timeout: 30_000 }, () => {
     a.store.limits.set(FRESH);
     await a.refreshLimits();
     expect(claude.calls()).toHaveLength(0);
+  });
+
+  it('asks once in 10 minutes when no report ever comes back', async () => {
+    const claude = fakeClaude('turn');
+    const a = app();
+    await a.refreshLimits();
+    await a.refreshLimits();
+    expect(claude.calls()).toHaveLength(1);
+    clock = '2026-10-13T10:09:59Z';
+    await a.refreshLimits();
+    expect(claude.calls()).toHaveLength(1);
+    clock = '2026-10-13T10:10:00Z';
+    await a.refreshLimits();
+    expect(claude.calls()).toHaveLength(2);
+  });
+
+  it('makes the timer wait 10 minutes after you click refresh', async () => {
+    const claude = fakeClaude('turn');
+    const a = app();
+    await a.refreshUsage();
+    await a.refreshLimits();
+    expect(claude.calls()).toHaveLength(1);
+  });
+
+  it('never asks on the timer when the agent is not Claude', async () => {
+    const claude = fakeClaude('limits');
+    settings = { ...settings, agent: 'command' };
+    const a = app();
+    await a.refreshLimits();
+    expect(claude.calls()).toHaveLength(0);
+  });
+
+  it('still asks at once when you click refresh with another agent', async () => {
+    const claude = fakeClaude('limits');
+    settings = { ...settings, agent: 'command' };
+    const a = app();
+    await a.refreshUsage();
+    expect(claude.calls()).toHaveLength(1);
   });
 });

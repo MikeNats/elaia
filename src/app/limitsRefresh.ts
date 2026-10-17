@@ -24,15 +24,20 @@ const ASK = [
   '',
 ];
 
-// Called on the slow timer while the panel is open (asks only when the last report is old), and
-// by the refresh button (force: asks now). One ask at a time, and the screen sees it running.
+// Called on the slow timer while the panel is open, and by the refresh button (force: asks now).
+// The timer asks only when Claude is your agent and both the last report and the last ask are
+// old: an ask that brings no report (an API key login, an older claude) still counts, or the
+// timer would ask on every tick. One ask at a time, and the screen sees it running.
 // Only a forced ask that brings no report says so; a failed timer ask waits for the next tick.
 export async function refreshLimits(app: AppState, opts: { force?: boolean } = {}): Promise<void> {
   const ask = app.limitsAsk;
+  const now = Date.parse(app.deps.now());
   const claude = app.deps.store.limits.all().find((p) => p.provider === 'Claude');
-  const age = claude ? Date.parse(app.deps.now()) - Date.parse(claude.at) : Infinity;
-  if (ask.running || (!opts.force && age < STALE_MS)) return;
+  const last = Math.max(claude ? Date.parse(claude.at) : -Infinity, ask.lastAt ?? -Infinity);
+  const timerSkips = app.deps.settings().agent !== 'claude' || now - last < STALE_MS;
+  if (ask.running || (!opts.force && timerSkips)) return;
   ask.running = true;
+  ask.lastAt = now;
   postSnapshot(app);
   let reported = false;
   try {

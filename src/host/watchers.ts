@@ -29,7 +29,7 @@ export function createWatchers(app: App, tick: () => void, panelOpen: () => bool
   }
   const timer = setInterval(() => {
     tick();
-    // Your plan's usage, asked for when the last report is old, but only while you can see it.
+    // Your plan's usage, asked for when the last report and ask are old, only while you can see it.
     if (panelOpen()) void app.refreshLimits();
     // A project added in another window is picked up here, so the leader tracks it too.
     app.syncProjects();

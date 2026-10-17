@@ -89,6 +89,7 @@ export interface AppState {
   viewing: string | null;
   // Chats whose full agent is writing its handoff note. A new message waits for it.
   handingOver: Map<string, Promise<void>>;
-  // The ask for your plan's usage: running now, and whether the last one you clicked for failed.
-  limitsAsk: { running: boolean; failed: boolean };
+  // The ask for your plan's usage: running now, whether the last one you clicked for failed, and
+  // when the last one started (ms), report or not.
+  limitsAsk: { running: boolean; failed: boolean; lastAt: number | null };
 }
