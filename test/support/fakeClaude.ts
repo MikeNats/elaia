@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,6 +22,7 @@ export function fakeClaude(fixture: 'turn' | 'deny' | 'resume-fail' | 'limits') 
   );
   delete process.env.FAKE_CLAUDE_FAIL;
   delete process.env.FAKE_CLAUDE_RESUME_FIXTURE;
+  delete process.env.FAKE_CLAUDE_HOLD;
   return {
     calls(): FakeCall[] {
       if (!existsSync(log)) return [];
@@ -38,6 +39,12 @@ export function fakeClaude(fixture: 'turn' | 'deny' | 'resume-fail' | 'limits') 
       process.env.FAKE_CLAUDE_RESUME_FIXTURE = fileURLToPath(
         new URL('../fixtures/claude/resume-fail.jsonl', import.meta.url),
       );
+    },
+    // Every turn waits until the returned release() is called, so a test can act while one runs.
+    hold(): () => void {
+      const file = path.join(dir, 'release');
+      process.env.FAKE_CLAUDE_HOLD = file;
+      return () => writeFileSync(file, '');
     },
   };
 }

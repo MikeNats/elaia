@@ -1,4 +1,4 @@
-import { PROJECT_THREAD, type ThreadRef, type TicketView } from '@/shared';
+import { PROJECT_THREAD, type TicketView } from '@/shared';
 import type { TicketBrief } from '@/workflow';
 import { chatTurn } from './chat';
 import { trustedEpics } from './epicTrust';
@@ -18,12 +18,6 @@ export function startGenesis(app: AppState, project: string, ticket: TicketBrief
 
 const inEpic = (app: AppState, project: string, id: string) =>
   trustedEpics(app, project).some(({ epic }) => epic?.tickets.some((t) => t.ticketId === id));
-
-// Your last words in the main chat: the ask the ticket was made from.
-function lastAsk(app: AppState, ref: ThreadRef): string | null {
-  const said = app.deps.store.threads.read(ref).filter((e) => e.kind === 'you');
-  return said.at(-1)?.text ?? null;
-}
 
 // When a main-chat turn started, and the line it answered.
 export interface TurnStart {
@@ -46,7 +40,7 @@ export function handOffNewTickets(app: AppState, project: string, turn: TurnStar
     const ref = { project, thread: t.id };
     if (app.deps.store.threads.read(ref).some((e) => e.kind === 'you')) continue;
     const title = t.title ?? t.id;
-    startGenesis(app, project, { id: t.id, title, brief: lastAsk(app, main) ?? title, epic: null });
+    startGenesis(app, project, { id: t.id, title, brief: turn.text || title, epic: null });
     const open = { kind: 'open' as const, label: 'Open ticket chat', value: t.id };
     const text = `"${title}" goes on in its own chat: its questions, spec and plan come there.`;
     record(app, main, [{ ...chatEntry(app, 'progress', text), actions: [open] }]);

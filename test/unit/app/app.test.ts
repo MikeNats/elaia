@@ -305,4 +305,25 @@ describe('app', { timeout: 30_000 }, () => {
     await a.send({ project, thread: 'project' }, 'hi');
     expect(threadTexts(a, 'project')).not.toContain(handedOff);
   });
+
+  it("briefs the new ticket with the turn's own line, not one typed while it ran", async () => {
+    const claude = fakeClaude('turn');
+    const release = claude.hold();
+    const a = app();
+    await a.addProject(project);
+    fake.answer('poreia', { contract: 1, tickets: [newIdea('2026-10-13T10:00:05Z')] });
+    const main = { project, thread: 'project' };
+    const first = a.send(main, 'add a new idea');
+    await vi.waitFor(() => expect(claude.calls()).toHaveLength(1));
+    // The next turn starts after the ticket was made, so the ticket is not that turn's.
+    clock = '2026-10-13T10:00:10Z';
+    await a.send(main, 'and make it blue');
+    release();
+    await first;
+    const planning = () =>
+      claude.calls().find((c) => c.stdin.includes('Plan glafka ticket 2026-10-13-new-idea'));
+    await vi.waitFor(() => expect(planning()).toBeDefined());
+    expect(planning()?.stdin).toContain('What I asked for: add a new idea');
+    expect(planning()?.stdin).not.toContain('make it blue');
+  });
 });
