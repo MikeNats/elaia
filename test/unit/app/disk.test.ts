@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
@@ -16,7 +17,7 @@ import { createApp, type Settings } from '@/app';
 import { save } from '@/app/handoffNote';
 import type { AppState } from '@/app/types';
 import { createStore } from '@/store';
-import type { ToWebview } from '@/shared';
+import { threadKey, type ToWebview } from '@/shared';
 import { FAKE_GLAFKA, fakeGlafkaDir } from '../../support/fakeGlafka';
 import { FAKE_CLAUDE, fakeClaude } from '../../support/fakeClaude';
 import { makeTicket } from '../../support/ticket';
@@ -162,5 +163,38 @@ describe('the .elaia folder', { timeout: 30_000 }, () => {
       `The handoff note could not be saved: ${link} is a symlink. Elaia writes nothing there.`,
     );
     expect(readdirSync(target)).toEqual([]);
+  });
+});
+
+describe('a chat lock', { timeout: 30_000 }, () => {
+  // A lock as another window leaves it: a pid that runs, but is not this one.
+  const leaveLock = (key: string, at: number) => {
+    const dir = path.join(storeRoot, 'locks');
+    mkdirSync(dir, { recursive: true });
+    const name = `${createHash('sha1').update(key).digest('hex')}.json`;
+    writeFileSync(path.join(dir, name), JSON.stringify({ pid: process.ppid, at }));
+  };
+
+  it('keeps the chat for the window that holds a fresh lock', async () => {
+    const claude = fakeClaude('turn');
+    const a = app();
+    await a.addProject(project);
+    const ref = { project, thread: 'project' };
+    leaveLock(threadKey(ref), Date.now());
+    await a.send(ref, 'hello');
+    expect(claude.calls()).toEqual([]);
+    expect(threadTexts(a, 'project').at(-1)).toBe(
+      'This chat is answering in another VS Code window. Wait for it there.',
+    );
+  });
+
+  it('frees the chat when the lock is old, though its pid runs something else now', async () => {
+    const claude = fakeClaude('turn');
+    const a = app();
+    await a.addProject(project);
+    const ref = { project, thread: 'project' };
+    leaveLock(threadKey(ref), Date.now() - 200_000);
+    await a.send(ref, 'hello');
+    expect(claude.calls()).toHaveLength(1);
   });
 });
