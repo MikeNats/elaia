@@ -19,6 +19,7 @@ import type { AppDeps, AppState } from './types';
 
 export type { AppDeps, Settings, AgentKind } from './types';
 export { AGENT_KINDS, PLATFORMS, PERMISSION_MODES, SettingsSchema } from './types';
+export { REPO_SETTINGS, settingsFrom, type ConfigSource } from './settings';
 
 import { refreshLimits } from './limitsRefresh';
 
