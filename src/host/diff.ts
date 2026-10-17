@@ -2,7 +2,8 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 import type { App } from '@/app';
 import type { ThreadRef } from '@/shared';
-import { baseUri, changesSince } from './gitFiles';
+import { changesSince } from './git';
+import { baseUri } from './gitFiles';
 
 // Diff on top (70%), the ticket chat underneath (30%).
 const REVIEW_LAYOUT = { orientation: 1, groups: [{ size: 0.7 }, { size: 0.3 }] };
@@ -26,10 +27,8 @@ export async function openReview(
   }
   const resources = changes.map((c) => {
     const file = c.after ?? c.before ?? '';
-    const before = baseUri(worktree, c.before ? from : '', c.before ?? file);
-    const after = c.after
-      ? vscode.Uri.file(path.join(worktree, c.after))
-      : baseUri(worktree, '', file);
+    const before = baseUri(ref, c.before ? from : '', c.before ?? file);
+    const after = c.after ? vscode.Uri.file(path.join(worktree, c.after)) : baseUri(ref, '', file);
     return [vscode.Uri.file(path.join(worktree, file)), before, after];
   });
   await vscode.commands.executeCommand('vscode.setEditorLayout', REVIEW_LAYOUT);
