@@ -3,6 +3,7 @@ import { workflowFor } from '@/workflow';
 import type { Snapshot, ThreadEntry, ThreadRef } from '@/shared';
 import { copiesForEpic } from './epicMirror';
 import { keepSoon } from './keep';
+import { knowWritten } from './known';
 import { attentionView, noteAttention } from './attention';
 import { liveView, withLiveTokens } from './liveAgents';
 import { queuedView } from './queue';
@@ -23,6 +24,7 @@ export function record(app: AppState, ref: ThreadRef, entries: ThreadEntry[]): v
 // Entries just kept: show them, write the chat into the repo's .elaia/ (git ignores it),
 // and copy what waits for you into the epic chat.
 export function showKept(app: AppState, ref: ThreadRef, entries: ThreadEntry[]): void {
+  knowWritten(app, ref, entries.length);
   app.deps.post({ type: 'entries', ref, entries });
   keepSoon(app, ref);
   if (noteAttention(app, ref, entries)) postSnapshot(app);

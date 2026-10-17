@@ -43,6 +43,8 @@ export function loadAttention(app: AppState): void {
       const { waitingAt } = step(NOTHING, entries, true);
       const fresh = entries.some((e) => e.shown && e.kind !== 'you' && e.at > seen);
       app.attention.set(threadKey(ref), { waitingAt, fresh });
+      // What this window has seen of the file: only lines after these are new to it.
+      app.known.set(threadKey(ref), entries.length);
     }
   }
 }
