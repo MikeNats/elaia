@@ -79,7 +79,8 @@ async function route(msg: ToHost, ctx: MessageContext): Promise<void> {
   }
 }
 
-// Every webview message is checked before anything acts on it.
+// Every webview message is checked before anything acts on it: its shape and names by the
+// schema, its project against the projects you added.
 export async function handleMessage(raw: unknown, ctx: MessageContext): Promise<void> {
   const parsed = ToHostSchema.safeParse(raw);
   if (!parsed.success) {
@@ -89,8 +90,13 @@ export async function handleMessage(raw: unknown, ctx: MessageContext): Promise<
     });
     return;
   }
+  const msg = parsed.data;
+  if ('project' in msg && !ctx.app.store.projects.list().some((p) => p.path === msg.project)) {
+    ctx.post({ type: 'error', text: `Elaia does not know the project ${msg.project}.` });
+    return;
+  }
   try {
-    await route(parsed.data, ctx);
+    await route(msg, ctx);
   } catch (err) {
     ctx.post({ type: 'error', text: err instanceof Error ? err.message : String(err) });
   }

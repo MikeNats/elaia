@@ -26,7 +26,8 @@ export const TICKET_RULES = [
 // Told to the main chat only: how to cut work of more than one ticket into an epic Elaia can run.
 export const EPIC_RULES = [
   'Epics: when the work is more than one ticket, or I say "epic", your whole turn is two steps:',
-  '1. Write docs/elaia/epics/<short-slug>/epic.json from my words alone, in exactly this shape:',
+  '1. Write docs/elaia/epics/<short-slug>/epic.json from my words alone (the slug is short',
+  '   kebab-case, like "publish-polish"), in exactly this shape:',
   '   {"title": "...", "goal": "one line", "brief": "what the epic chat must find out and do, in my words",',
   '    "sources": ["paths"], "ordered": false, "tickets": []}',
   '2. Answer in one line, "Created the epic <title>; its own chat takes it from here.", and stop.',

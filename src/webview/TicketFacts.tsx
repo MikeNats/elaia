@@ -47,7 +47,7 @@ function PullRequest({
         {ticket.worktree && (
           <button
             className="secondary"
-            onClick={() => post({ type: 'open-folder', path: ticket.worktree ?? '' })}
+            onClick={() => post({ type: 'open-folder', project: project.path, ticket: ticket.id })}
           >
             Open folder
           </button>

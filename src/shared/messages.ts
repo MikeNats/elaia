@@ -2,10 +2,12 @@ import { z } from 'zod';
 import type { ChatTokens, TicketView, TokenRow } from './glafka';
 import type { ProviderLimits } from './limits';
 import type { LiveAgent } from './live';
-import type { ThreadEntry, ThreadRef } from './thread';
+import { isSafeName, isThreadName, type ThreadEntry, type ThreadRef } from './thread';
 
 // Webview → host. Requests are strict: an unknown field is a bug, not a no-op.
-const ref = { project: z.string(), thread: z.string() };
+// Names become paths and glafka arguments: only safe ones get through.
+const name = z.string().refine(isSafeName, 'not a safe name');
+const ref = { project: z.string(), thread: z.string().refine(isThreadName, 'not a thread name') };
 
 export const ToHostSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('ready') }),
@@ -24,13 +26,13 @@ export const ToHostSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('stop'), ...ref }),
   z.strictObject({ type: z.literal('clear-chat'), ...ref }),
   z.strictObject({ type: z.literal('allow'), ...ref, tool: z.string().min(1) }),
-  z.strictObject({ type: z.literal('advance'), project: z.string(), ticket: z.string() }),
-  z.strictObject({ type: z.literal('push'), project: z.string(), ticket: z.string() }),
-  z.strictObject({ type: z.literal('merge'), project: z.string(), ticket: z.string() }),
-  z.strictObject({ type: z.literal('close-ticket'), project: z.string(), ticket: z.string() }),
-  z.strictObject({ type: z.literal('cancel-ticket'), project: z.string(), ticket: z.string() }),
+  z.strictObject({ type: z.literal('advance'), project: z.string(), ticket: name }),
+  z.strictObject({ type: z.literal('push'), project: z.string(), ticket: name }),
+  z.strictObject({ type: z.literal('merge'), project: z.string(), ticket: name }),
+  z.strictObject({ type: z.literal('close-ticket'), project: z.string(), ticket: name }),
+  z.strictObject({ type: z.literal('cancel-ticket'), project: z.string(), ticket: name }),
   // `thread` is the chat the Start card is in: Elaia answers there.
-  z.strictObject({ type: z.literal('start-ticket'), ...ref, ticket: z.string() }),
+  z.strictObject({ type: z.literal('start-ticket'), ...ref, ticket: name }),
   z.strictObject({ type: z.literal('setup'), project: z.string() }),
   z.strictObject({ type: z.literal('skip-setup'), project: z.string() }),
   z.strictObject({
@@ -42,7 +44,7 @@ export const ToHostSchema = z.discriminatedUnion('type', [
   z.strictObject({
     type: z.literal('approve-epic'),
     project: z.string(),
-    epic: z.string(),
+    epic: name,
     approval: z.enum(['epic', 'ticket']),
   }),
   z.strictObject({
@@ -52,9 +54,9 @@ export const ToHostSchema = z.discriminatedUnion('type', [
   }),
   // Move the Elaia tab into its own window (with its own tree), or back to the main window.
   z.strictObject({ type: z.literal('own-window'), on: z.boolean() }),
-  z.strictObject({ type: z.literal('open-folder'), path: z.string() }),
-  z.strictObject({ type: z.literal('open-file'), path: z.string() }),
-  z.strictObject({ type: z.literal('open-diff'), project: z.string(), ticket: z.string() }),
+  // Open a ticket's worktree in a new window. The host looks the folder up: no path comes in.
+  z.strictObject({ type: z.literal('open-folder'), project: z.string(), ticket: name }),
+  z.strictObject({ type: z.literal('open-diff'), project: z.string(), ticket: name }),
 ]);
 export type ToHost = z.infer<typeof ToHostSchema>;
 export type ToHostType = ToHost['type'];
