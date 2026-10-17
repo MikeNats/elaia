@@ -27,7 +27,8 @@ export function allowRule(name: string, input: unknown): string {
 }
 
 // One command's rule: program and subcommand (`Bash(git commit:*)`, so `git push` stays out),
-// or the exact command (`cd` too: `Bash(cd:*)` would allow a cd anywhere). Past an unknown VAR=value Claude matches no wider rule.
+// or the exact command (`cd` too: `Bash(cd:*)` would allow a cd anywhere). Past an unknown
+// VAR=value Claude matches no wider rule.
 function ruleFor(part: string): string[] {
   const exact = [`Bash(${part})`];
   const words = part.split(/\s+/);
