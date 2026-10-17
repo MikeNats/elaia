@@ -30,6 +30,10 @@ function step(state: ThreadAttention, entries: ThreadEntry[], seenNow: boolean):
   return { waitingAt, fresh };
 }
 
+// Something you have not seen: a shown line, not yours, after the time you last saw the thread.
+export const freshSince = (entries: ThreadEntry[], seen: string): boolean =>
+  entries.some((e) => e.shown && e.kind !== 'you' && e.at > seen);
+
 // Once at start: every kept thread, against when you last saw it. The first run sees all.
 export function loadAttention(app: AppState): void {
   const { store, now } = app.deps;
@@ -41,7 +45,7 @@ export function loadAttention(app: AppState): void {
       const seen = store.seen.get(ref) ?? '';
       const entries = store.threads.read(ref);
       const { waitingAt } = step(NOTHING, entries, true);
-      const fresh = entries.some((e) => e.shown && e.kind !== 'you' && e.at > seen);
+      const fresh = freshSince(entries, seen);
       app.attention.set(threadKey(ref), { waitingAt, fresh });
       // What this window has seen of the file: only lines after these are new to it.
       app.known.set(threadKey(ref), entries.length);

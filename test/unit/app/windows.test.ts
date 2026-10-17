@@ -151,6 +151,21 @@ describe('two windows on one store', { timeout: 30_000 }, () => {
     expect(lastDots(b.posts)?.[threadKey(ref())]).toBeUndefined();
   });
 
+  it('drops the dot when the thread is read in another window (AC-8)', async () => {
+    const { a, b } = await twoWindows();
+    await leaderWritesALine(a);
+    b.app.storeChanged([storePath(b)]);
+    expect(lastDots(b.posts)?.[threadKey(ref())]).toBe('new');
+    a.app.viewing(ref(), true);
+    const seen = path.join(root, 'seen.json');
+    const before = readFileSync(seen, 'utf8');
+    b.posts.length = 0;
+    b.app.storeChanged(['seen.json']);
+    expect(readFileSync(seen, 'utf8')).toBe(before);
+    expect(lastDots(b.posts)).not.toBeNull();
+    expect(lastDots(b.posts)?.[threadKey(ref())]).toBeUndefined();
+  });
+
   it('ignores a thread file of a project it does not have (AC-9)', async () => {
     const { b } = await twoWindows();
     const other = { project: '/repos/not-here', thread: T };

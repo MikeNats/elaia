@@ -1,5 +1,5 @@
 import { threadKey, type ThreadRef } from '@/shared';
-import { noteAttention } from './attention';
+import { freshSince, noteAttention } from './attention';
 import { postSnapshot } from './record';
 import { threadPage } from './ticketIntro';
 import type { AppState } from './types';
@@ -13,6 +13,7 @@ export function storeChanged(app: AppState, paths: string[]): void {
     const ref = app.deps.store.threads.refOf(p, projects);
     if (ref && threadChanged(app, ref)) dots = true;
   }
+  if (paths.includes('seen.json') && recheckDots(app)) dots = true;
   if (dots) postSnapshot(app);
 }
 
@@ -28,4 +29,23 @@ function threadChanged(app: AppState, ref: ThreadRef): boolean {
   const dot = noteAttention(app, ref, all.slice(known));
   if (app.opened.has(key)) app.deps.post({ type: 'thread', ref, entries: threadPage(app, ref) });
   return dot;
+}
+
+// seen.json changed: you read a thread to its bottom in some window, so its dot may be gone.
+// This never writes seen.json, so it cannot start a loop of changes. True when a dot may differ.
+function recheckDots(app: AppState): boolean {
+  const { store } = app.deps;
+  let changed = false;
+  for (const project of app.projects.keys()) {
+    for (const thread of store.threads.list(project)) {
+      const ref = { project, thread };
+      const key = threadKey(ref);
+      const a = app.attention.get(key);
+      if (!a?.fresh || freshSince(store.threads.read(ref), store.seen.get(ref) ?? '')) continue;
+      app.attention.set(key, { ...a, fresh: false });
+      changed = true;
+    }
+  }
+  // A "waiting" dot is compared with seen.json in every snapshot, so a snapshot is enough.
+  return changed || [...app.attention.values()].some((a) => a.waitingAt !== null);
 }
