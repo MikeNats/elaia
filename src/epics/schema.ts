@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isSafeName } from '@/shared';
 
 export const EPIC_STATUSES = ['proposed', 'approved', 'done'] as const;
 export const APPROVALS = ['epic', 'ticket'] as const;
@@ -11,14 +12,18 @@ const idAsKey = (raw: unknown) =>
     ? { ...raw, key: (raw as { id: unknown }).id }
     : raw;
 
+// A key becomes part of a thread name ('todo-<slug>~<key>'), which the webview checks the same way.
+const KEY_RULE = 'must be short kebab-case (letters, digits, - . _), like "csv-export"';
+const key = z.string().refine(isSafeName, KEY_RULE);
+
 // One ticket of an epic. The planner writes what and why; Elaia writes how far it is.
 export const EpicTicketSchema = z.preprocess(
   idAsKey,
   z.object({
-    key: z.string().min(1),
+    key,
     title: z.string().min(1),
     brief: z.string().min(1),
-    dependsOn: z.array(z.string()).default([]),
+    dependsOn: z.array(key).default([]),
     ticketId: z.string().nullable().default(null),
     state: z.enum(TICKET_STATES).default('waiting'),
   }),

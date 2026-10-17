@@ -7,6 +7,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
+import { isSafeName } from '@/shared';
 import { EpicSchema, type Epic } from './schema';
 
 // Elaia's own folder in a repo: the same for every ticket tool.
@@ -32,6 +33,9 @@ export function readEpics(project: string): EpicRead[] {
 }
 
 export function readEpic(project: string, slug: string): EpicRead {
+  // The slug becomes the thread name 'epic-<slug>', which the webview checks the same way.
+  if (!isSafeName(slug))
+    return { slug, epic: null, problem: 'the folder name must be a short kebab-case slug' };
   let json: unknown;
   try {
     json = JSON.parse(readFileSync(epicFile(project, slug), 'utf8'));
