@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // A stand-in for `claude -p`: logs how it was called, then replays a recorded stream-json file.
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
+import { clearInterval, setInterval } from 'node:timers';
 
 function reply() {
   if (process.env.FAKE_CLAUDE_FAIL) {
