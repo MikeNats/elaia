@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // A stand-in for `claude -p`: logs how it was called, then replays a recorded stream-json file.
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
-import { clearInterval, setInterval } from 'node:timers';
+import { clearInterval, setInterval, setTimeout } from 'node:timers';
 
 function reply() {
   if (process.env.FAKE_CLAUDE_FAIL) {
@@ -11,7 +11,9 @@ function reply() {
   }
   const resuming = process.argv.includes('--resume') && process.env.FAKE_CLAUDE_RESUME_FIXTURE;
   const fixture = resuming ? process.env.FAKE_CLAUDE_RESUME_FIXTURE : process.env.FAKE_CLAUDE_FIXTURE;
-  process.stdout.write(readFileSync(fixture, 'utf8'));
+  // A slow agent: the chat stays busy, so a test can send while it runs.
+  const delay = Number(process.env.FAKE_CLAUDE_DELAY_MS ?? 0);
+  setTimeout(() => process.stdout.write(readFileSync(fixture, 'utf8')), delay);
 }
 
 const chunks = [];

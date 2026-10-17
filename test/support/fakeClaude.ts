@@ -23,6 +23,7 @@ export function fakeClaude(fixture: 'turn' | 'deny' | 'resume-fail' | 'limits') 
   delete process.env.FAKE_CLAUDE_FAIL;
   delete process.env.FAKE_CLAUDE_RESUME_FIXTURE;
   delete process.env.FAKE_CLAUDE_HOLD;
+  delete process.env.FAKE_CLAUDE_DELAY_MS;
   return {
     calls(): FakeCall[] {
       if (!existsSync(log)) return [];
@@ -45,6 +46,10 @@ export function fakeClaude(fixture: 'turn' | 'deny' | 'resume-fail' | 'limits') 
       const file = path.join(dir, 'release');
       process.env.FAKE_CLAUDE_HOLD = file;
       return () => writeFileSync(file, '');
+    },
+    // Each call waits this long before it answers, so the chat stays busy meanwhile.
+    slow(ms: number) {
+      process.env.FAKE_CLAUDE_DELAY_MS = String(ms);
     },
   };
 }

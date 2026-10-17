@@ -43,8 +43,10 @@ export interface AppDeps {
   confirm?(text: string, yes: string): Promise<boolean>;
 }
 
-// A turn waiting for a busy chat. `text` is your line; `prompt`, when set, is what the agent gets.
+// A turn waiting for a busy chat. `text` is your line (empty for a turn Elaia starts itself);
+// `prompt`, when set, is what the agent gets.
 export interface QueuedTurn {
+  ref: ThreadRef;
   text: string;
   prompt: string | null;
   push?: boolean;
@@ -75,6 +77,8 @@ export interface AppState {
   keeping: Map<string, { timer: NodeJS.Timeout; ref: ThreadRef }>;
   // Turns asked for while a chat was busy, by thread key; they go next, in order.
   queued: Map<string, QueuedTurn[]>;
+  // VS Code is closing: no turn starts any more.
+  disposed: boolean;
   // Agents each chat has running now, by thread key (and the timer that shows their steps).
   live: Map<string, Map<string, LiveAgent>>;
   // Tokens each running turn used so far, by thread key. Gone when the turn ends.
