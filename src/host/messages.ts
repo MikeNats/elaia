@@ -67,6 +67,11 @@ async function route(msg: ToHost, ctx: MessageContext): Promise<void> {
       return ctx.projectsChanged();
     case 'skip-setup':
       return app.skipSetup(msg.project);
+    case 'trust':
+      await app.trust(msg.project, msg.hash);
+      return ctx.projectsChanged();
+    case 'not-trust':
+      return app.notNowTrust(msg.project);
     case 'setup-step':
       await app.setupStep(msg.project, msg.step, msg.choice);
       return ctx.projectsChanged();

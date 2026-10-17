@@ -16,6 +16,10 @@ function act(action: EntryAction, shownIn: ThreadRef, post: Post): void {
       return post({ type: 'setup', project: action.value });
     case 'skip-setup':
       return post({ type: 'skip-setup', project: action.value });
+    case 'trust':
+      return post({ type: 'trust', project: ref.project, hash: action.value });
+    case 'not-trust':
+      return post({ type: 'not-trust', project: ref.project });
     case 'setup-step': {
       const [step = '', choice = ''] = action.value.split(':');
       return post({ type: 'setup-step', project: ref.project, step, choice });

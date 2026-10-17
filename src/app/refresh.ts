@@ -9,6 +9,7 @@ import { autoAdvance } from './advance';
 import { explainStop, stopMoved } from './nextStep';
 import { offerPlans } from './planCard';
 import { offerGoneWorktrees } from './worktreeGone';
+import { offerTrust } from './trustCard';
 import type { AppState } from './types';
 
 // One refresh per project at a time. A request that lands mid-refresh runs once more after.
@@ -31,6 +32,9 @@ export function refresh(app: AppState, projectPath: string): Promise<void> {
 async function refreshOnce(app: AppState, projectPath: string): Promise<void> {
   const state = app.projects.get(projectPath);
   if (!state) return;
+  // A repo that can run things you have not trusted: its card in the main chat. It comes before
+  // the not-installed return: a repo without glafka can still ship Claude hooks.
+  if (app.deps.isLeader()) offerTrust(app, projectPath);
   const workflow = workflowOf(app, projectPath);
   // Not set up yet: no tickets to read. The setup card in the project chat says what to do.
   if (!workflow.isInstalled(projectPath)) {

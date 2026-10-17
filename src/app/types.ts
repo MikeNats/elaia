@@ -77,6 +77,10 @@ export interface AppState {
   keeping: Map<string, { timer: NodeJS.Timeout; ref: ThreadRef }>;
   // Turns asked for while a chat was busy, by thread key; they go next, in order.
   queued: Map<string, QueuedTurn[]>;
+  // Turns that waited for your Trust, by project. They run once you press it; a reload drops them.
+  heldForTrust: Map<string, QueuedTurn[]>;
+  // Projects whose trust card you answered Not now: refresh does not show it again.
+  trustDeclined: Set<string>;
   // VS Code is closing: no turn starts any more.
   disposed: boolean;
   // Agents each chat has running now, by thread key (and the timer that shows their steps).

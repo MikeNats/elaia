@@ -3,6 +3,7 @@ import { handOffNewTickets, type TurnStart } from './ticketHandOff';
 import { PROJECT_THREAD, type ThreadEntry, type ThreadRef } from '@/shared';
 import type { SetupItem } from '@/workflow';
 import { note, record, workflowOf } from './record';
+import { trustedNow } from './repoTrust';
 import { refresh } from './refresh';
 import { nextSetup, projectRef } from './setupCards';
 import { runSetup, setupStep } from './setupRun';
@@ -32,6 +33,8 @@ function card(app: AppState, project: string, items: SetupItem[]): ThreadEntry {
 // files only; nothing runs until you press Set up. Shown again only when it changed.
 export function offerSetup(app: AppState, project: string): void {
   if (app.setupAnswered.has(project)) return;
+  // The trust card comes first: Set up runs glafka.
+  if (!trustedNow(app, project)) return;
   const items = workflowOf(app, project).setupStatus(project);
   if (items.every((i) => i.done || i.optional)) return;
   const ref = { project, thread: PROJECT_THREAD };

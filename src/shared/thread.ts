@@ -37,6 +37,9 @@ export const ACTION_KINDS = [
   'cancel',
   // Start the coder on a planned ticket: its worktree, its coder, its own chat.
   'start',
+  // The trust card in a project's main chat. trust: `value` is the hash of what it listed.
+  'trust',
+  'not-trust',
 ] as const;
 export type ActionKind = (typeof ACTION_KINDS)[number];
 
