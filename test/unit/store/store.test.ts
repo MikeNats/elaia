@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -157,5 +157,34 @@ describe('locks', () => {
     expect(readLock('k').pid).toBe(other);
     store.locks.release('k');
     expect(existsSync(lockFile('k'))).toBe(true);
+  });
+});
+
+describe('usage', () => {
+  const row = (at: string, cost: number) => ({
+    at,
+    project: '/repos/frontline',
+    thread: 'project',
+    cost,
+    tokens: 10,
+    source: 'chat' as const,
+  });
+  const file = () => path.join(root, 'usage.jsonl');
+
+  it('drops the rows before the cutoff and keeps the rest', () => {
+    store.usage.add(row('2026-10-01T00:00:00Z', 5));
+    store.usage.add(row('2026-10-12T00:00:00Z', 2));
+    store.usage.drop('2026-10-06T10:00:00Z');
+    expect(store.usage.since('')).toEqual([row('2026-10-12T00:00:00Z', 2)]);
+    expect(readFileSync(file(), 'utf8').trim().split('\n')).toHaveLength(1);
+  });
+
+  it('leaves the file alone when no row is old, or when there is no file', () => {
+    store.usage.drop('2026-10-06T10:00:00Z');
+    expect(existsSync(file())).toBe(false);
+    store.usage.add(row('2026-10-12T00:00:00Z', 2));
+    const before = statSync(file()).ino;
+    store.usage.drop('2026-10-06T10:00:00Z');
+    expect(statSync(file()).ino).toBe(before);
   });
 });

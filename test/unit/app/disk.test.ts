@@ -12,7 +12,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp, type Settings } from '@/app';
 import { save } from '@/app/handoffNote';
 import type { AppState } from '@/app/types';
@@ -196,5 +196,62 @@ describe('a chat lock', { timeout: 30_000 }, () => {
     leaveLock(threadKey(ref), Date.now() - 200_000);
     await a.send(ref, 'hello');
     expect(claude.calls()).toHaveLength(1);
+  });
+});
+
+describe('the usage file', () => {
+  const row = (at: string, cost: number) => ({
+    at,
+    project,
+    thread: 'project',
+    cost,
+    tokens: 10,
+    source: 'chat' as const,
+  });
+  // NOW is 2026-10-13T10:00:00Z: 12 days ago, 3 days ago, and 1 hour ago.
+  const addRows = (a: ReturnType<typeof app>) => {
+    a.store.usage.add(row('2026-10-01T10:00:00Z', 100));
+    a.store.usage.add(row('2026-10-10T10:00:00Z', 2));
+    a.store.usage.add(row('2026-10-13T09:00:00Z', 1));
+  };
+  const lastSnapshot = () => posted.filter((m) => m.type === 'snapshot').at(-1);
+  const spentShown = () => {
+    const snap = lastSnapshot();
+    return snap?.type === 'snapshot' ? snap.snapshot.usage?.spent : undefined;
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('drops the rows the usage view no longer needs, and shows the same numbers', () => {
+    const a = app();
+    addRows(a);
+    a.snapshot();
+    expect(spentShown()).toEqual({ session: 1, week: 3 });
+    expect(a.store.usage.since('').map((r) => r.cost)).toEqual([2, 1]);
+  });
+
+  it('leaves the file alone in a window that is not the leader', () => {
+    leader = false;
+    const a = app();
+    addRows(a);
+    a.snapshot();
+    expect(spentShown()).toEqual({ session: 1, week: 3 });
+    expect(a.store.usage.since('')).toHaveLength(3);
+  });
+
+  it('drops at most once an hour', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const a = app();
+    a.snapshot();
+    addRows(a);
+    // Past the view's 15 s cache, but inside the hour.
+    vi.setSystemTime(Date.now() + 20_000);
+    a.snapshot();
+    expect(a.store.usage.since('')).toHaveLength(3);
+    vi.setSystemTime(Date.now() + 3_600_000);
+    a.snapshot();
+    expect(a.store.usage.since('')).toHaveLength(2);
   });
 });

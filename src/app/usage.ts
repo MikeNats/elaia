@@ -61,6 +61,21 @@ export function noteRun(app: AppState, ref: ThreadRef, log: string): void {
 type Spent = { session: number; week: number };
 const CACHE_MS = 15_000;
 const cache = new WeakMap<AppState, { at: number; spent: Spent }>();
+const dropped = new WeakMap<AppState, number>();
+
+// The view needs only the last 7 days, so older rows go. Only the leader window drops them,
+// the first time and then at most once an hour: a row another window adds during the
+// rewrite can be lost, so the rewrite stays rare.
+function dropOld(app: AppState, weekAgo: string): void {
+  const last = dropped.get(app);
+  if (!app.deps.isLeader() || (last !== undefined && Date.now() - last < HOUR)) return;
+  dropped.set(app, Date.now());
+  try {
+    app.deps.store.usage.drop(weekAgo);
+  } catch {
+    // A full or read-only disk: the view still reads the rows, and the next hour tries again.
+  }
+}
 
 // What Elaia itself spent (dollars at API prices) in the last 5 hours and 7 days. Screen
 // updates come often; its log is read at most every 15 seconds.
@@ -68,7 +83,9 @@ function spent(app: AppState): Spent {
   const hit = cache.get(app);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.spent;
   const now = Date.parse(app.deps.now());
-  const rows = app.deps.store.usage.since(new Date(now - 7 * 24 * HOUR).toISOString());
+  const weekAgo = new Date(now - 7 * 24 * HOUR).toISOString();
+  dropOld(app, weekAgo);
+  const rows = app.deps.store.usage.since(weekAgo);
   const recent = new Date(now - 5 * HOUR).toISOString();
   const sum = (from: string) => rows.filter((r) => r.at >= from).reduce((s, r) => s + r.cost, 0);
   const value = { session: sum(recent), week: sum('') };
