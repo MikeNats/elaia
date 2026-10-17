@@ -9,7 +9,8 @@ export function queueIfBusy(app: AppState, ref: ThreadRef, turn: Omit<QueuedTurn
   // Busy, handing over, or others already waiting: then this one waits too, in order.
   if (!app.turns.isBusy(ref) && !app.handingOver.has(key) && !app.queued.has(key)) return false;
   app.queued.set(key, [...(app.queued.get(key) ?? []), { ...turn, ref }]);
-  record(app, ref, [chatEntry(app, 'you', turn.text)]);
+  // A turn Elaia starts itself has no line of yours. An empty one would also clear the dot.
+  if (turn.text) record(app, ref, [chatEntry(app, 'you', turn.text)]);
   postSnapshot(app);
   return true;
 }

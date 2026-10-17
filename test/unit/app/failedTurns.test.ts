@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp, type App, type Settings } from '@/app';
 import { afterTurn } from '@/app/setup';
 import { createStore } from '@/store';
-import { threadKey, type ThreadRef, type ToWebview } from '@/shared';
+import { PROJECT_THREAD, threadKey, type ThreadRef, type ToWebview } from '@/shared';
 import { FAKE_GLAFKA, fakeGlafkaDir } from '../../support/fakeGlafka';
 import { FAKE_CLAUDE, fakeClaude } from '../../support/fakeClaude';
 import { makeTicket } from '../../support/ticket';
@@ -139,5 +139,34 @@ describe('when VS Code closes', { timeout: 15_000 }, () => {
     await a.push(ref);
     expect(claude.calls()).toHaveLength(0);
     expect(texts(a, ref, 'you')).toEqual([]);
+  });
+});
+
+describe('turns Elaia starts itself', { timeout: 15_000 }, () => {
+  it('Explain in a busy main chat adds no empty You line', async () => {
+    const a = app();
+    await a.addProject(project);
+    const main = { project, thread: PROJECT_THREAD };
+    const { done } = await startBusy(a, main);
+    await a.setupStep(project, 'map', 'explain');
+    expect(lastSnapshot()?.queued?.[threadKey(main)]).toBe(1);
+    expect(texts(a, main, 'you')).toEqual(['hello', 'Explain']);
+    await done;
+  });
+
+  it('a stop explained while the ticket chat is busy keeps the waiting dot', async () => {
+    const a = app();
+    await a.addProject(project);
+    const ref = { project, thread: TICKET };
+    const { done } = await startBusy(a, ref);
+    fake.answer('poreia', {
+      contract: 1,
+      tickets: [makeTicket({ summary: { rank: 0, text: 'x  ⚠ needs you  — checks failed' } })],
+    });
+    await a.refresh(project);
+    expect(lastSnapshot()?.queued?.[threadKey(ref)]).toBe(1);
+    expect(lastSnapshot()?.attention?.[threadKey(ref)]).toBe('waiting');
+    await done;
+    expect(texts(a, ref, 'you')).toEqual(['hello']);
   });
 });
