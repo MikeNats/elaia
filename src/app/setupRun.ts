@@ -1,35 +1,11 @@
-import type { ThreadEntry, ThreadRef } from '@/shared';
-import type { CommandResult } from '@/workflow';
+import type { ThreadRef } from '@/shared';
 import { chatTurn } from './chat';
 import { messageOf, note, record, workflowOf } from './record';
 import { refresh } from './refresh';
+import { resultNote } from './resultNote';
 import { nextSetup, projectRef, stepsOf } from './setupCards';
 import { commitSetup } from './setupCommit';
 import type { AppState } from './types';
-
-// One line you see; the command's own output as a text box: in the details when it worked,
-// shown when it failed.
-function resultNote(
-  app: AppState,
-  ref: ThreadRef,
-  ok: string,
-  failed: string,
-  result: CommandResult,
-) {
-  const worked = result.code === 0;
-  const tail = (result.stdout + result.stderr).trim().split('\n').slice(-12).join('\n');
-  const line = (kind: ThreadEntry['kind'], text: string, shown: boolean): ThreadEntry => ({
-    at: app.deps.now(),
-    kind,
-    text,
-    shown,
-    source: 'glafka',
-  });
-  record(app, ref, [
-    line(worked ? 'progress' : 'error', worked ? ok : failed, true),
-    ...(tail ? [line('progress', `\`\`\`text\n${tail}\n\`\`\``, !worked)] : []),
-  ]);
-}
 
 async function install(app: AppState, ref: ThreadRef): Promise<boolean> {
   const workflow = workflowOf(app, ref.project);
@@ -59,19 +35,24 @@ export async function runSetup(app: AppState, project: string): Promise<void> {
   record(app, ref, [
     { at: app.deps.now(), kind: 'you', text: 'Set up', shown: true, source: 'chat' },
   ]);
-  if (!(await install(app, ref))) return;
-  const workflow = workflowOf(app, project);
-  if (workflow.isInstalled(project)) {
-    const missing = workflow
-      .setupStatus(project)
-      .filter((i) => !i.done)
-      .map((i) => i.key);
-    for (const step of workflow.autoSetup(project, missing)) {
-      note(app, ref, 'progress', `${step.label}…`);
-      resultNote(app, ref, step.done, `${step.label} failed.`, await step.run());
+  try {
+    if (!(await install(app, ref))) return;
+    const workflow = workflowOf(app, project);
+    if (workflow.isInstalled(project)) {
+      const missing = workflow
+        .setupStatus(project)
+        .filter((i) => !i.done)
+        .map((i) => i.key);
+      for (const step of workflow.autoSetup(project, missing)) {
+        note(app, ref, 'progress', `${step.label}…`);
+        resultNote(app, ref, step.done, `${step.label} failed.`, await step.run());
+      }
     }
+    await nextSetup(app, project, true);
+  } catch (err) {
+    // glafka could not run at all (missing, say). Every next step would fail the same way.
+    note(app, ref, 'error', messageOf(err));
   }
-  await nextSetup(app, project, true);
 }
 
 const SAID: Record<string, string> = {
@@ -94,11 +75,17 @@ export async function setupStep(app: AppState, project: string, key: string, cho
   record(app, ref, [
     { at: app.deps.now(), kind: 'you', text: SAID[choice] ?? choice, shown: true, source: 'chat' },
   ]);
-  if (choice === 'keep')
-    resultNote(app, ref, 'Kept.', 'Keeping it failed.', await workflow.keepFinding(project, key));
-  if (choice === 'commit') await commitSetup(app, project);
-  if (choice === 'change')
-    return chatTurn(app, ref, '', await workflow.changeFinding(project, key));
-  if (choice === 'explain') return chatTurn(app, ref, '', workflow.setupPrompt([key]));
-  await nextSetup(app, project, true);
+  try {
+    if (choice === 'keep')
+      resultNote(app, ref, 'Kept.', 'Keeping it failed.', await workflow.keepFinding(project, key));
+    if (choice === 'commit') await commitSetup(app, project);
+    if (choice === 'change')
+      return await chatTurn(app, ref, '', await workflow.changeFinding(project, key));
+    if (choice === 'explain') return await chatTurn(app, ref, '', workflow.setupPrompt([key]));
+    await nextSetup(app, project, true);
+  } catch (err) {
+    // The button can be pressed again.
+    steps.delete(key);
+    note(app, ref, 'error', messageOf(err));
+  }
 }

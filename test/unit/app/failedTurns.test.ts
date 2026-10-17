@@ -170,3 +170,32 @@ describe('turns Elaia starts itself', { timeout: 15_000 }, () => {
     expect(texts(a, ref, 'you')).toEqual(['hello']);
   });
 });
+
+// The error lines that say glafka could not run.
+const notFound = (a: App, ref: ThreadRef) =>
+  texts(a, ref, 'error').filter((t) => t.includes('glafka was not found'));
+
+describe('errors show in the chat', { timeout: 15_000 }, () => {
+  beforeEach(() => {
+    settings.glafkaPath = path.join(project, 'no-such-glafka');
+  });
+
+  it('Set up shows one error line when glafka is missing, and works again', async () => {
+    const a = app();
+    await a.addProject(project);
+    const main = { project, thread: PROJECT_THREAD };
+    await a.setup(project);
+    expect(notFound(a, main)).toHaveLength(1);
+    await a.setup(project);
+    expect(notFound(a, main)).toHaveLength(2);
+  });
+
+  it('a setup button that failed can be pressed again', async () => {
+    const a = app();
+    await a.addProject(project);
+    const main = { project, thread: PROJECT_THREAD };
+    await a.setupStep(project, 'workspace', 'keep');
+    await a.setupStep(project, 'workspace', 'keep');
+    expect(notFound(a, main)).toHaveLength(2);
+  });
+});
