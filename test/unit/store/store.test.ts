@@ -1,7 +1,8 @@
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createStore, type Store } from '@/store';
 import type { ThreadEntry } from '@/shared';
 import { makeTicket } from '../../support/ticket';
@@ -102,5 +103,88 @@ describe('views, tokens, published', () => {
     mkdirSync(root, { recursive: true });
     writeFileSync(path.join(root, 'projects.json'), '{broken');
     expect(createStore(root).projects.list()).toEqual([]);
+  });
+});
+
+describe('locks', () => {
+  const lockFile = (key: string) =>
+    path.join(root, 'locks', `${createHash('sha1').update(key).digest('hex')}.json`);
+  const leave = (key: string, lock: object) => {
+    mkdirSync(path.join(root, 'locks'), { recursive: true });
+    writeFileSync(lockFile(key), JSON.stringify(lock));
+  };
+  const readLock = (key: string) =>
+    JSON.parse(readFileSync(lockFile(key), 'utf8')) as { pid: number; at: number };
+  // A pid that runs, but is not this window: the process that started the tests.
+  const other = process.ppid;
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('takes an old lock whose pid runs again: the pid was reused after a crash', () => {
+    leave('k', { pid: other, at: Date.now() - 200_000 });
+    expect(store.locks.take('k')).toBe(true);
+  });
+
+  it('keeps out a fresh lock held by a live window', () => {
+    leave('k', { pid: other, at: Date.now() });
+    expect(store.locks.take('k')).toBe(false);
+  });
+
+  it('takes a lock with no time, as an older Elaia wrote it', () => {
+    leave('k', { pid: other });
+    expect(store.locks.take('k')).toBe(true);
+  });
+
+  it('keeps its lock fresh while the turn runs, and stops once it lets go', () => {
+    vi.useFakeTimers();
+    expect(store.locks.take('k')).toBe(true);
+    vi.advanceTimersByTime(160_000);
+    const lock = readLock('k');
+    expect(lock.pid).toBe(process.pid);
+    expect(Date.now() - lock.at).toBeLessThanOrEqual(30_000);
+    store.locks.release('k');
+    expect(existsSync(lockFile('k'))).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('never takes back a lock another window took meanwhile', () => {
+    vi.useFakeTimers();
+    store.locks.take('k');
+    leave('k', { pid: other, at: Date.now() });
+    vi.advanceTimersByTime(30_000);
+    expect(readLock('k').pid).toBe(other);
+    store.locks.release('k');
+    expect(existsSync(lockFile('k'))).toBe(true);
+  });
+});
+
+describe('usage', () => {
+  const row = (at: string, cost: number) => ({
+    at,
+    project: '/repos/frontline',
+    thread: 'project',
+    cost,
+    tokens: 10,
+    source: 'chat' as const,
+  });
+  const file = () => path.join(root, 'usage.jsonl');
+
+  it('drops the rows before the cutoff and keeps the rest', () => {
+    store.usage.add(row('2026-10-01T00:00:00Z', 5));
+    store.usage.add(row('2026-10-12T00:00:00Z', 2));
+    store.usage.drop('2026-10-06T10:00:00Z');
+    expect(store.usage.since('')).toEqual([row('2026-10-12T00:00:00Z', 2)]);
+    expect(readFileSync(file(), 'utf8').trim().split('\n')).toHaveLength(1);
+  });
+
+  it('leaves the file alone when no row is old, or when there is no file', () => {
+    store.usage.drop('2026-10-06T10:00:00Z');
+    expect(existsSync(file())).toBe(false);
+    store.usage.add(row('2026-10-12T00:00:00Z', 2));
+    const before = statSync(file()).ino;
+    store.usage.drop('2026-10-06T10:00:00Z');
+    expect(statSync(file()).ino).toBe(before);
   });
 });

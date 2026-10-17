@@ -1,3 +1,4 @@
+import { renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { appendLines, readLines } from './files';
@@ -19,5 +20,15 @@ export function usageStore(root: string) {
   return {
     add: (row: UsageRow) => appendLines(file, [JSON.stringify(row)]),
     since: (iso: string): UsageRow[] => readLines(file, RowSchema).filter((r) => r.at >= iso),
+    // Rows before `iso` go. A temp file, then rename, so a crash never leaves half a file;
+    // nothing is written when no row is older.
+    drop(iso: string): void {
+      const rows = readLines(file, RowSchema);
+      const kept = rows.filter((r) => r.at >= iso);
+      if (kept.length === rows.length) return;
+      const temp = `${file}.${process.pid}.tmp`;
+      writeFileSync(temp, kept.map((r) => `${JSON.stringify(r)}\n`).join(''));
+      renameSync(temp, file);
+    },
   };
 }

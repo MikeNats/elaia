@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { handoffsDir, MEMORY_TOOLS, prepareElaiaDir } from '@/memory';
 import type { ThreadEntry, ThreadRef } from '@/shared';
@@ -81,8 +81,8 @@ export function latestHandoff(ref: ThreadRef, clearedAt: string | null = null): 
 
 export function save(app: AppState, ref: ThreadRef, text: string, about: string): string {
   const dir = handoffsDir(ref.project, ref.thread);
-  prepareElaiaDir(ref.project);
-  mkdirSync(dir, { recursive: true });
+  // Throws when the project folder is gone or .elaia holds a symlink; the chat says why.
+  prepareElaiaDir(ref.project, dir);
   const file = path.join(dir, `${stampOf(app.deps.now())}.md`);
   const head = [
     `# Handoff — chat ${ref.thread}`,

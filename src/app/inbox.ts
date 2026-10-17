@@ -22,6 +22,10 @@ export function saveInbox(
   project: string,
   files: { name: string; data: string }[],
 ): void {
+  const ref = { project, thread: PROJECT_THREAD };
+  // A deleted or moved repo: never make its folder again.
+  if (!existsSync(project))
+    return note(app, ref, 'error', `The project folder is missing: ${project}`);
   const dir = inboxDir(project);
   mkdirSync(dir, { recursive: true });
   const saved: string[] = [];
@@ -36,7 +40,6 @@ export function saveInbox(
     writeFileSync(path.join(dir, name), bytes);
     saved.push(`\`docs/elaia/inbox/${name}\``);
   }
-  const ref = { project, thread: PROJECT_THREAD };
   if (saved.length > 0) {
     note(app, ref, 'progress', `Added ${saved.join(', ')}. Ask me to plan an epic from them.`);
   }

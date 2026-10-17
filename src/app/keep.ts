@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { upgradeOldCard } from '@/filter';
 import { chatFile, prepareElaiaDir } from '@/memory';
@@ -32,15 +32,15 @@ export function keepNow(app: AppState, ref: ThreadRef): string | null {
       .filter((e) => e.shown)
       .map(upgradeOldCard);
     if (shown.length === 0) return null;
+    // Before the repo file is read too: a symlink there could point anywhere.
+    prepareElaiaDir(ref.project, path.dirname(file));
     const older = inRepo(file).filter((e) => e.at < shown[0]!.at);
-    prepareElaiaDir(ref.project);
-    mkdirSync(path.dirname(file), { recursive: true });
     const temp = `${file}.${process.pid}.tmp`;
     writeFileSync(temp, [...older, ...shown].map((e) => `${JSON.stringify(e)}\n`).join(''));
     renameSync(temp, file);
     return file;
   } catch {
-    // A moved or read-only repo. This machine's copy still has it.
+    // A deleted, moved or read-only repo, or a symlink in .elaia. This machine's copy still has it.
     return null;
   }
 }
