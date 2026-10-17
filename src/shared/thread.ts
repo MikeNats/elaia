@@ -80,6 +80,21 @@ export function todoOf(thread: string): { slug: string; key: string } | null {
   return slug && key ? { slug, key } : null;
 }
 
+// A ticket id, epic slug or epic ticket key from outside: no '/', no '..', and no leading '-'
+// (glafka would read it as an option).
+const SAFE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+export const isSafeName = (name: string): boolean =>
+  name.length <= 200 && SAFE_NAME.test(name) && !name.includes('..');
+
+// 'project', 'epic-<slug>', a ticket id, or 'todo-<slug>~<key>'.
+export function isThreadName(thread: string): boolean {
+  const todo = todoOf(thread);
+  if (!todo) return isSafeName(thread);
+  return (
+    isSafeName(todo.slug) && isSafeName(todo.key) && thread === todoThread(todo.slug, todo.key)
+  );
+}
+
 export interface ThreadRef {
   project: string;
   thread: string;
