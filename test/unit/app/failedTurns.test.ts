@@ -90,7 +90,7 @@ describe('the chat queue', { timeout: 15_000 }, () => {
     vi.mocked(afterTurn).mockRejectedValueOnce(new Error('boom: the run file is gone'));
     const { done } = await startBusy(a, ref);
     await a.send(ref, 'second');
-    expect(lastSnapshot()?.queued[threadKey(ref)]).toBe(1);
+    expect(lastSnapshot()?.queued?.[threadKey(ref)]).toBe(1);
     await done;
     expect(claude.calls()).toHaveLength(2);
     expect(texts(a, ref, 'error')).toContain('boom: the run file is gone');
@@ -110,5 +110,34 @@ describe('the chat queue', { timeout: 15_000 }, () => {
     expect(texts(a, ref, 'error').filter((t) => t === ANOTHER_WINDOW)).toHaveLength(2);
     expect(claude.calls()).toHaveLength(1);
     expect(lastSnapshot()?.queued).toEqual({});
+  });
+});
+
+describe('when VS Code closes', { timeout: 15_000 }, () => {
+  it('drops a waiting message with a Not sent line and starts no agent', async () => {
+    const a = app();
+    await a.addProject(project);
+    const ref = { project, thread: TICKET };
+    const { done } = await startBusy(a, ref);
+    await a.send(ref, 'second');
+    a.dispose();
+    await done;
+    expect(claude.calls()).toHaveLength(1);
+    expect(afterTurn).not.toHaveBeenCalled();
+    expect(texts(a, ref, 'error')).toContain(
+      'Not sent: Elaia closed before it ran. Send it again.',
+    );
+    expect(lastSnapshot()?.queued).toEqual({});
+  });
+
+  it('starts no agent for a message or a button after dispose', async () => {
+    const a = app();
+    await a.addProject(project);
+    const ref = { project, thread: TICKET };
+    a.dispose();
+    await a.send(ref, 'too late');
+    await a.push(ref);
+    expect(claude.calls()).toHaveLength(0);
+    expect(texts(a, ref, 'you')).toEqual([]);
   });
 });

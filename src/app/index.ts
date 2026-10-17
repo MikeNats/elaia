@@ -10,6 +10,7 @@ import { saveInbox } from './inbox';
 import type { Approval } from '@/epics';
 import { advanceByHand } from './advance';
 import { keepAllNow } from './keep';
+import { dropQueued } from './queue';
 import { setViewing } from './attention';
 import { refresh } from './refresh';
 import { threadPage } from './ticketIntro';
@@ -40,6 +41,7 @@ function newState(deps: AppDeps): AppState {
     live: new Map(),
     liveTokens: new Map(),
     queued: new Map(),
+    disposed: false,
     liveTimer: null,
     viewing: null,
     limitsAsk: { running: false, failed: false },
@@ -85,7 +87,11 @@ export function createApp(deps: AppDeps) {
     ticket: (ref: ThreadRef) =>
       app.projects.get(ref.project)?.tickets.find((t) => t.id === ref.thread) ?? null,
     dispose: () => {
+      // Nothing new may start now; waiting messages are dropped, and their chats say so.
+      app.disposed = true;
+      dropQueued(app);
       app.turns.stopAll();
+      // After the Not sent lines, so they are written into the repo too.
       keepAllNow(app);
     },
   };

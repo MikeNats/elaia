@@ -17,6 +17,8 @@ async function runTurn(
   text: string,
   opts: TurnOptions,
 ): Promise<void> {
+  // VS Code is closing: no agent may start now.
+  if (app.disposed) return;
   const key = threadKey(ref);
   // One agent per chat in every VS Code window, not only in this one.
   if (!app.deps.store.locks.take(key)) {
@@ -57,6 +59,8 @@ async function runTurn(
     app.deps.store.locks.release(key);
   }
   postSnapshot(app);
+  // Stopped because VS Code is closing: afterTurn could start glafka's next agent.
+  if (app.disposed) return;
   try {
     // The agent may have run glafka commands; pick up what changed.
     await afterTurn(app, ref, { since, text });
@@ -82,10 +86,13 @@ export function chatTurn(
   prompt: string,
   opts: { push?: boolean } = {},
 ) {
+  if (app.disposed) return Promise.resolve();
   if (queueIfBusy(app, ref, { text: shown, prompt, ...opts })) return Promise.resolve();
   return runTurn(app, ref, shown, { prompt, ...opts });
 }
 
 export async function send(app: AppState, ref: ThreadRef, text: string): Promise<void> {
+  // VS Code is closing: the message is not taken (it would only wait for ever).
+  if (app.disposed) return;
   if (!(await notNow(app, ref, text))) await runTurn(app, ref, text, { prompt: null });
 }
