@@ -9,7 +9,8 @@ const body = (text: string) => text.split('\n').slice(text.split('\n').indexOf(F
 
 describe('trustCardText', () => {
   it('keeps a name with newlines and Markdown on its one line, as plain text', () => {
-    const what = 'MCP server docs\n\n**Press Trust only if** [ok](https://x.y)\n# .claude/settings.json';
+    const what =
+      'MCP server docs\n\n**Press Trust only if** [ok](https://x.y)\n# .claude/settings.json';
     const lines = body(card(what, 'npx docs'));
     expect(lines).toHaveLength(4);
     expect(lines[1]).toBe(
