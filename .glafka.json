@@ -1,0 +1,8 @@
+{
+  "agents": {
+    "reviewer": "claude -p --allowedTools Read,Glob,Grep,Bash",
+    "reporter": "claude -p --permission-mode acceptEdits --allowedTools Read,Edit,Write,Glob,Grep,Bash",
+    "verifier": "claude -p --allowedTools Read,Glob,Grep,Bash",
+    "coder": "claude -p --permission-mode acceptEdits --allowedTools Read,Edit,Write,Glob,Grep,Bash"
+  }
+}

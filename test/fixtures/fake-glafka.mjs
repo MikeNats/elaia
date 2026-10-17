@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+// A stand-in for glafka. It prints <FAKE_GLAFKA_DIR>/<command>.json and logs every call.
+import { appendFileSync, existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+
+const dir = process.env.FAKE_GLAFKA_DIR;
+const [command = 'none', ...rest] = process.argv.slice(2);
+appendFileSync(path.join(dir, 'calls.log'), `${process.cwd()}\t${[command, ...rest].join(' ')}\n`);
+
+const out = path.join(dir, `${command}.json`);
+const code = path.join(dir, `${command}.code`);
+if (existsSync(out)) process.stdout.write(readFileSync(out, 'utf8'));
+else process.stderr.write(`fake glafka: no ${command}.json\n`);
+process.exitCode = existsSync(code) ? Number(readFileSync(code, 'utf8')) : existsSync(out) ? 0 : 1;

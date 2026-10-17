@@ -1,0 +1,214 @@
+/* Colours come from the VS Code theme, so Elaia matches light, dark and high contrast. */
+:root {
+  --gap: 12px;
+  --radius: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  line-height: 1.5;
+  text-align: left;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+h1 {
+  font-size: 1.3em;
+}
+/* A full-width line under the logo, same as the column lines, so it sits apart from the projects. */
+.left h1 {
+  margin: 0 calc(-1 * var(--gap)) var(--gap);
+  padding: 0 var(--gap) var(--gap);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+.logo {
+  height: 1.6em;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+/* Black is invisible on a dark theme. Invert turns it white; the gray stays gray. */
+.vscode-dark .logo,
+.vscode-high-contrast:not(.vscode-high-contrast-light) .logo {
+  filter: invert(1);
+}
+h2 {
+  font-size: 1.1em;
+}
+h3 {
+  font-size: 0.95em;
+  opacity: 0.8;
+}
+
+button {
+  font: inherit;
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  border: none;
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+button.secondary {
+  color: var(--vscode-button-secondaryForeground);
+  background: var(--vscode-button-secondaryBackground);
+}
+button.link {
+  color: var(--vscode-textLink-foreground);
+  background: none;
+  padding: 2px 4px;
+}
+
+input,
+textarea {
+  font: inherit;
+  width: 100%;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+}
+textarea {
+  resize: vertical;
+}
+
+.muted {
+  opacity: 0.7;
+}
+
+.layout {
+  display: grid;
+  height: 100%;
+  transition: grid-template-columns 200ms ease;
+}
+/* While a column is dragged: no text selection, resize cursor everywhere, no slide. */
+.layout:has(.splitter.active) {
+  user-select: none;
+  cursor: col-resize;
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .layout {
+    transition: none;
+  }
+}
+.column {
+  overflow-y: auto;
+  padding: var(--gap);
+}
+.left,
+.right {
+  background: var(--vscode-sideBar-background);
+}
+
+/* The handle is 5px to grab; it shows a 1px line, thicker on hover or drag. */
+.splitter {
+  position: relative;
+  cursor: col-resize;
+  background: var(--vscode-sideBar-background);
+  touch-action: none;
+}
+.splitter::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 1px;
+  background: var(--vscode-panel-border);
+}
+.splitter:hover::after,
+.splitter:focus-visible::after,
+.splitter.active::after {
+  left: 1px;
+  width: 3px;
+  background: var(--vscode-sash-hoverBorder, var(--vscode-focusBorder));
+}
+.splitter:focus-visible {
+  outline: none;
+}
+/* The hide/show tab sits on the right handle, half over each side. */
+.splitter-toggle {
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  z-index: 1;
+  width: 18px;
+  height: 40px;
+  padding: 0;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--vscode-foreground);
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.splitter.closed {
+  cursor: default;
+}
+/* With the panel away, the tab moves fully inside the window. */
+.splitter.closed .splitter-toggle {
+  left: -13px;
+}
+.splitter-toggle:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+.right {
+  overflow: hidden;
+  min-width: 0;
+}
+.right-inner {
+  height: 100%;
+}
+.center {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+/* The sidebar page: VS Code's sidebar colour, a little room around the tree. */
+body.in-sidebar {
+  background: var(--vscode-sideBar-background);
+}
+body.in-sidebar #root {
+  padding: 4px 8px 12px 4px;
+}
+
+/* The tab in its own window: the tree on the left, like the sidebar. */
+.own-tree {
+  padding: 4px 8px 12px 4px;
+}
+.window-link {
+  display: block;
+  margin: 0 0 var(--gap) auto;
+}

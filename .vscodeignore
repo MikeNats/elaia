@@ -1,0 +1,12 @@
+**
+!dist/extension.cjs
+!dist/elaia-cli.cjs
+!dist/webview/main.js
+!dist/webview/main.css
+!dist/THIRD-PARTY-NOTICES.txt
+!media/*.svg
+!media/icon.png
+!package.json
+!README.md
+!LICENSE
+!CHANGELOG.md

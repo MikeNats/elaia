@@ -1,0 +1,495 @@
+/* Tree, thread and facts. Kept apart from the page layout in styles.css. */
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Projects, chats and tickets: one size below the rest of the page. */
+  font-size: calc(var(--vscode-font-size) - 1px);
+}
+.tree-project {
+  margin-bottom: var(--gap);
+}
+.tree-project-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  margin-bottom: 4px;
+  /* In line with the dot slot of the rows under it. */
+  padding-left: 12px;
+}
+/* Remove a project: grey, so it does not pull the eye. */
+.tree-project-header .tree-remove {
+  color: var(--vscode-descriptionForeground);
+}
+.tree-project-header .tree-remove:hover {
+  color: var(--vscode-foreground);
+}
+.tree-row {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  color: var(--vscode-foreground);
+  background: none;
+  padding: 3px 6px;
+}
+/* The dot at the far left: this chat waits for you or has news. One look for both (he chose it);
+   the tooltip says which. Empty keeps the line up. */
+.tree-dot {
+  flex: none;
+  width: 8px;
+}
+.tree-dot-waiting,
+.tree-dot-new {
+  width: 5px;
+  height: 5px;
+  margin: 6px 1.5px 0;
+  border-radius: 50%;
+  background: var(--vscode-activityBarBadge-background, #0078d4);
+}
+/* The Elaia logo on each main chat: the size of the epic's branch. */
+.mask-icon.tree-logo {
+  width: 1.4em;
+  height: 1.4em;
+  object-fit: contain;
+  margin: -0.15em 0;
+  vertical-align: -0.3em;
+}
+/* Icons drawn from media/*.svg: the file's shape, filled with the text colour. */
+.mask-icon {
+  display: inline-block;
+  background-color: currentColor;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+/* The epic's olive branch: a bit bigger than a ticket's sprig. */
+.bough {
+  width: 1.4em;
+  height: 1.4em;
+  margin: -0.15em 0;
+  vertical-align: -0.3em;
+}
+/* The olive sprig drawing: as big as the emoji next to it. */
+.sprig {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.18em;
+}
+.tree-row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+.tree-row.active {
+  color: var(--vscode-list-activeSelectionForeground);
+  background: var(--vscode-list-activeSelectionBackground);
+}
+.tree-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-error {
+  color: var(--vscode-errorForeground);
+  font-size: 0.9em;
+}
+/* "+ Add project": a quiet link, starting where the project names start. */
+button.link.tree-add {
+  align-self: flex-start;
+  margin-top: var(--gap);
+  padding: 2px 0 2px 12px;
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.thread-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--gap);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+.thread-entries {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--gap);
+}
+.entry {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0;
+}
+.entry-body {
+  flex: 1;
+  min-width: 0;
+}
+.entry-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.entry-you .entry-text {
+  font-weight: 600;
+}
+.entry-approval,
+.entry-needs-you {
+  background: var(--vscode-inputValidation-warningBackground);
+  border-left: 3px solid var(--vscode-charts-yellow, #cca700);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 8px 10px;
+  margin-top: 10px;
+}
+.entry-error .entry-text,
+.entry-finding .entry-text {
+  color: var(--vscode-errorForeground);
+}
+.entry-detail {
+  opacity: 0.6;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+}
+.entry-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.message-box {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: var(--gap);
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.empty,
+.banner-error {
+  padding: var(--gap);
+}
+.banner-error {
+  display: flex;
+  justify-content: space-between;
+  color: var(--vscode-errorForeground);
+  background: var(--vscode-inputValidation-errorBackground);
+}
+
+/* Facts: one section per topic, label and value both left-aligned. */
+.facts-section {
+  padding: var(--gap) 0;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+.facts-section:first-child {
+  padding-top: 0;
+}
+.facts-section:last-child {
+  border-bottom: none;
+}
+.fact {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 8px;
+  padding: 2px 0;
+}
+.fact-label {
+  opacity: 0.7;
+}
+.fact-value {
+  overflow-wrap: anywhere;
+}
+.facts-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.facts-actions button {
+  font-size: 0.85em;
+  padding: 2px 8px;
+}
+.finding {
+  font-size: 0.9em;
+  margin: 4px 0;
+}
+.pr-link {
+  font-weight: 600;
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+}
+.pr-link:hover {
+  text-decoration: underline;
+}
+
+/* QA: one card per criterion, the left bar shows the result. */
+.qa-card {
+  --result: var(--vscode-disabledForeground, #888);
+  border-left: 3px solid var(--result);
+  background: var(--vscode-editor-background);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 6px 10px;
+  margin-top: 8px;
+  font-size: 0.9em;
+}
+.qa-pass {
+  --result: var(--vscode-charts-green, #89d185);
+}
+.qa-fail {
+  --result: var(--vscode-charts-red, #f14c4c);
+}
+.qa-cannot {
+  --result: var(--vscode-charts-yellow, #cca700);
+}
+.qa-id {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.qa-step {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.qa-step-label {
+  opacity: 0.6;
+}
+.qa-card code,
+.qa-evidence code {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.95em;
+  background: var(--vscode-textCodeBlock-background);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+.qa-evidence {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.qa-evidence summary {
+  cursor: pointer;
+  opacity: 0.7;
+}
+.tokens {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+.tokens th,
+.tokens td {
+  text-align: left;
+  padding: 2px 4px;
+}
+
+/* Epics in the tree: a heading, its tickets indented under it. */
+.tree-epic {
+  margin: 4px 0;
+}
+.tree-epic-header {
+  font-weight: 600;
+  font-size: 0.92em;
+  padding: 4px 6px 2px;
+}
+/* Nesting: project › its chat and epics › each epic's tickets, one step further in. */
+.tree-epic .tree-row {
+  padding-left: 16px;
+}
+/* The epic's own row opens its chat; in bold, at the level of the main chat. */
+.tree-epic > .tree-row:first-child {
+  padding-left: 12px;
+  font-weight: 600;
+}
+.tree-loose {
+  padding-left: 8px;
+}
+.tree-extra {
+  margin-left: 6px;
+  font-size: 0.85em;
+  font-weight: normal;
+}
+.tree-row-todo {
+  opacity: 0.6;
+  font-weight: normal;
+}
+.todo-note {
+  padding: var(--gap);
+  border-top: 1px solid var(--vscode-panel-border);
+}
+.drop-hint {
+  font-size: 0.85em;
+  opacity: 0.7;
+  padding: 0 var(--gap) 4px;
+}
+.thread.dropping {
+  outline: 2px dashed var(--vscode-focusBorder);
+  outline-offset: -6px;
+}
+
+/* Permissions: two buttons, the chosen one filled. */
+.switch {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0;
+}
+.small {
+  font-size: 0.85em;
+}
+/* Agents running: what each was asked, and under it its latest step. */
+.live-agents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.live-agents li {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+.live-doing {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Each running agent is a button: click it for the popup. */
+button.live-agent {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  background: none;
+}
+button.live-agent:hover .live-about {
+  text-decoration: underline;
+}
+
+/* The agent popup: left-aligned, roomy, scrolls when long. */
+.agent-popup {
+  width: min(720px, 90vw);
+  max-height: 80vh;
+  padding: 0;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: var(--radius);
+}
+.agent-popup::backdrop {
+  background: rgb(0 0 0 / 40%);
+}
+.agent-popup-body {
+  padding: 12px 16px;
+  text-align: left;
+}
+.agent-popup header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.agent-popup h3 {
+  margin: 0;
+}
+.agent-task {
+  white-space: pre-wrap;
+}
+.agent-steps {
+  padding-left: 20px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+}
+.agent-steps li {
+  padding: 2px 0;
+}
+
+/* Chat header tools: the model picker and Show details, side by side. */
+.thread-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.model-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+.model-picker select {
+  color: var(--vscode-dropdown-foreground);
+  background: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border, transparent);
+  padding: 1px 4px;
+}
+
+/* Usage under the Elaia title: a name and %, and a thin bar under it. */
+.usage {
+  padding: 2px 4px 10px 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+.usage h3 {
+  margin: 4px 0 6px;
+  font-size: 0.8em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+/* The title row: "Usage" on the left, the refresh button at the far right. */
+.usage-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+/* Square, so the ↻ turns around its own middle. `button.` to win over `button.link`. */
+button.usage-refresh {
+  width: 1.6em;
+  height: 1.6em;
+  padding: 0;
+  text-align: center;
+  line-height: 1;
+  color: var(--vscode-descriptionForeground);
+}
+button.usage-refresh:hover:not(:disabled) {
+  color: var(--vscode-foreground);
+}
+/* Turns while an ask for new numbers runs. */
+button.usage-refresh.spinning {
+  animation: usage-spin 1s linear infinite;
+}
+@keyframes usage-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.usage-row {
+  margin: 6px 0;
+}
+.usage-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.usage-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--vscode-input-background, rgba(127, 127, 127, 0.25));
+  overflow: hidden;
+}
+.usage-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--vscode-progressBar-background, #0e70c0);
+}
+.usage-fill.high {
+  background: var(--vscode-editorWarning-foreground, #cca700);
+}
+/* The provider and report time, and when a window resets: small and quiet. */
+.usage-reset {
+  margin-top: 3px;
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+.usage-provider + .usage-provider {
+  margin-top: 10px;
+}

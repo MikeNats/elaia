@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.vscode-test/
+.worktrees/
+.glafka/
+.env.glafka
+*.vsix
+.elaia/
+docs/elaia/
+docs/glafka/tickets/
+docs/superpowers/

@@ -1,0 +1,206 @@
+{
+  "name": "elaia",
+  "displayName": "Elaia",
+  "description": "Every ticket a worktree. Every worktree an agent. Every project at once. A multi-agent orchestrator for glafka.",
+  "version": "0.1.0",
+  "publisher": "mtsougkranis",
+  "icon": "media/icon.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MikeNats/elaia.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MikeNats/elaia/issues"
+  },
+  "homepage": "https://github.com/MikeNats/elaia#readme",
+  "keywords": [
+    "glafka",
+    "claude",
+    "agents",
+    "worktree",
+    "multi-agent"
+  ],
+  "private": true,
+  "type": "module",
+  "engines": {
+    "vscode": "^1.95.0",
+    "node": ">=22.12"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onWebviewPanel:elaia.panel",
+    "onWebviewPanel:elaia.ticketChat",
+    "onView:elaia.launcher"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "elaia",
+          "title": "Elaia",
+          "icon": "media/logo-light-theme.svg"
+        }
+      ]
+    },
+    "views": {
+      "elaia": [
+        {
+          "type": "webview",
+          "id": "elaia.launcher",
+          "name": "Elaia"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "elaia.open",
+        "title": "Elaia: Open Panel"
+      }
+    ],
+    "configuration": {
+      "title": "Elaia",
+      "properties": {
+        "elaia.workflow": {
+          "type": "string",
+          "enum": [
+            "glafka"
+          ],
+          "default": "glafka",
+          "description": "The ticket tool for a new project. A project that already has one keeps it. More tools can plug in later."
+        },
+        "elaia.glafkaPath": {
+          "type": "string",
+          "default": "glafka",
+          "description": "The glafka command. Elaia runs it inside each project."
+        },
+        "elaia.platform": {
+          "type": "string",
+          "enum": [
+            "claude",
+            "cursor",
+            "gemini",
+            "kimi",
+            "opencode",
+            "github"
+          ],
+          "default": "claude",
+          "description": "Platform passed to `glafka install` when you add a project."
+        },
+        "elaia.agent": {
+          "type": "string",
+          "enum": [
+            "claude",
+            "command"
+          ],
+          "default": "claude",
+          "description": "claude = Claude Code with resumable sessions. command = any agent CLI that reads the prompt on stdin."
+        },
+        "elaia.claudePath": {
+          "type": "string",
+          "default": "claude",
+          "description": "The Claude Code command."
+        },
+        "elaia.agentCommand": {
+          "type": "string",
+          "default": "",
+          "description": "Shell command for `command` agents. Empty = the project's glafka `agents.default`."
+        },
+        "elaia.permissionMode": {
+          "type": "string",
+          "enum": [
+            "default",
+            "acceptEdits",
+            "plan"
+          ],
+          "default": "acceptEdits",
+          "description": "Claude permission mode for chat turns."
+        },
+        "elaia.allowedTools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "Skill",
+            "Bash(ls:*)",
+            "Bash(tree:*)",
+            "Bash(mkdir:*)",
+            "Bash(glafka:*)",
+            "Bash(git status:*)",
+            "Bash(git log:*)",
+            "Bash(git diff:*)"
+          ],
+          "description": "Tools Claude may use in chat turns without asking."
+        },
+        "elaia.autoAdvance": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run `glafka vima` when a background run ends."
+        },
+        "elaia.permissions": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "auto"
+          ],
+          "default": "auto",
+          "description": "ask: a card for commands outside your allow list. auto: agents run commands without asking; Elaia's block rules still hold, and git push, rm -rf, sudo, curl, wget and npm publish stay blocked."
+        },
+        "elaia.handoffAt": {
+          "type": "number",
+          "default": 70,
+          "minimum": 0,
+          "maximum": 95,
+          "description": "When a chat's agent is this % full, it writes a handoff note and a fresh agent takes over on your next message. 0 = never."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run format:check && npm run lint && npm run typecheck",
+    "test": "vitest run --project unit --project webview",
+    "test:glafka": "vitest run --project glafka",
+    "test:coverage": "vitest run --project unit --project webview --coverage",
+    "test:vscode": "npm run build && node test/vscode/run.mjs",
+    "package": "npm run build && vsce package --no-dependencies --no-rewrite-relative-links -o dist/elaia.vsix"
+  },
+  "dependencies": {
+    "minisearch": "^7.2.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/vscode": "^1.95.0",
+    "@vitest/coverage-v8": "^5.0.4",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "jsdom": "^30.1.2",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.4"
+  }
+}

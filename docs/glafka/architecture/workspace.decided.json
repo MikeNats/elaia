@@ -1,0 +1,4 @@
+{
+  "checksCmd": "npm run check && npm test",
+  "e2eCmd": "npm run test:vscode"
+}
