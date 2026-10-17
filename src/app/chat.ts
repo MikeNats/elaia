@@ -31,27 +31,15 @@ async function runTurn(
   try {
     // A button pressed while the old agent writes its handoff note goes to the fresh agent.
     await app.handingOver.get(key);
-    if (!(await repoCommandAllowed(app, ref)))
-      return note(
+    if (!(await repoCommandAllowed(app, ref))) {
+      // No return: the queue below still moves on.
+      note(
         app,
         ref,
         'error',
         "Elaia did not run the repo's agent command. Set elaia.agentCommand.",
       );
-    let result = await turnOnce(app, ref, opts.queued ? '' : text, text, opts);
-    if (result.resumeFailed) {
-      // Claude cleans old sessions away. Start fresh, with the thread handed over.
-      record(app, ref, [
-        chatEntry(
-          app,
-          'progress',
-          'The saved session was gone. Starting a fresh one with the thread handed over.',
-        ),
-      ]);
-      // The same request again: a button's own command, not its label.
-      result = await turnOnce(app, ref, '', text, opts);
-    }
-    await handOverIfFull(app, ref, result.folder, result.context);
+    } else await agentTurn(app, ref, text, opts);
   } catch (err) {
     record(app, ref, [chatEntry(app, 'error', messageOf(err))]);
   } finally {
@@ -69,6 +57,24 @@ async function runTurn(
     record(app, ref, [chatEntry(app, 'error', messageOf(err))]);
   }
   await runNext(app, ref);
+}
+
+// The agent's part of a turn: a fresh session if the saved one is gone, then a handoff if full.
+async function agentTurn(app: AppState, ref: ThreadRef, text: string, opts: TurnOptions) {
+  let result = await turnOnce(app, ref, opts.queued ? '' : text, text, opts);
+  if (result.resumeFailed) {
+    // Claude cleans old sessions away. Start fresh, with the thread handed over.
+    record(app, ref, [
+      chatEntry(
+        app,
+        'progress',
+        'The saved session was gone. Starting a fresh one with the thread handed over.',
+      ),
+    ]);
+    // The same request again: a button's own command, not its label.
+    result = await turnOnce(app, ref, '', text, opts);
+  }
+  await handOverIfFull(app, ref, result.folder, result.context);
 }
 
 // The next waiting turn, if any. Its line is already in the thread.
