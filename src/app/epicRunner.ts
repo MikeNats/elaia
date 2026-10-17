@@ -1,4 +1,11 @@
-import { allMerged, readyToStart, updateEpic, type Epic } from '@/epics';
+import {
+  allMerged,
+  readyToStart,
+  updateEpic,
+  waitingOnCancelled,
+  type Epic,
+  type EpicTicket,
+} from '@/epics';
 import { epicThread } from '@/shared';
 import { startTickets, withTicket } from './epicStart';
 import { trustedEpic, trustedEpics } from './epicTrust';
@@ -32,6 +39,18 @@ function sayOnce(app: AppState, project: string, slug: string, text: string): vo
   note(app, ref, 'error', text);
 }
 
+// One line per cancelled ticket that others wait on: they never start on their own.
+function cancelledLine(cancelled: EpicTicket, waiting: EpicTicket[]): string {
+  const names = waiting.map((t) => `"${t.title}"`);
+  const many = names.length > 1;
+  const who = many
+    ? `${names.slice(0, -1).join(', ')} and ${names.slice(-1).join('')}`
+    : names.join('');
+  const wait = many ? 'wait' : 'waits';
+  const stays = many ? 'They do not start on their own' : 'It does not start on its own';
+  return `${who} ${wait} on "${cancelled.title}", which was cancelled. ${stays}: change the plan here to go on.`;
+}
+
 // Moves every approved epic on: notes merged tickets, makes the ones now free to start.
 // Runs only inside a refresh, so one project never has two runs at once.
 export async function runEpics(app: AppState, project: string, open: Set<string>): Promise<void> {
@@ -51,6 +70,9 @@ export async function runEpics(app: AppState, project: string, open: Set<string>
       readyToStart(trustedEpic(app, project, slug) ?? read.epic),
     );
     const last = trustedEpic(app, project, slug);
+    // A cancelled ticket never merges: the tickets waiting on it stay put, and you are told once.
+    for (const { cancelled, waiting } of waitingOnCancelled(last ?? read.epic))
+      sayOnce(app, project, slug, cancelledLine(cancelled, waiting));
     if (last && allMerged(last)) {
       updateEpic(project, slug, (e) => ({ ...e, status: 'done' }));
       note(
