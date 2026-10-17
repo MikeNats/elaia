@@ -21,18 +21,32 @@ export interface EndedRun {
 // Background runs that have an exit code. glafka deletes them at close, so copy them first.
 export function endedRuns(project: string, ticketId: string): EndedRun[] {
   const runs = path.join(glafkaDir(project), 'tickets', ticketId, 'runs');
-  if (!existsSync(runs)) return [];
-  return readdirSync(runs).flatMap((role) => {
-    const dir = path.join(runs, role);
-    const log = path.join(dir, 'log');
-    if (!existsSync(path.join(dir, 'exit-code')) || !existsSync(log)) return [];
-    const startedFile = path.join(dir, 'started-at');
-    const startedAt = existsSync(startedFile)
-      ? readFileSync(startedFile, 'utf8').trim()
-      : String(Math.round(statSync(log).mtimeMs));
-    const code = Number(readFileSync(path.join(dir, 'exit-code'), 'utf8').trim());
-    return [{ role, startedAt, log, exitCode: Number.isNaN(code) ? null : code }];
+  let roles: string[];
+  try {
+    roles = readdirSync(runs);
+  } catch {
+    // No runs yet, or glafka deleted them at close.
+    return [];
+  }
+  return roles.flatMap((role) => {
+    try {
+      return endedRun(path.join(runs, role), role);
+    } catch {
+      // Deleted while we read it (glafka lysis). The next refresh looks again.
+      return [];
+    }
   });
+}
+
+function endedRun(dir: string, role: string): EndedRun[] {
+  const log = path.join(dir, 'log');
+  if (!existsSync(path.join(dir, 'exit-code')) || !existsSync(log)) return [];
+  const startedFile = path.join(dir, 'started-at');
+  const startedAt = existsSync(startedFile)
+    ? readFileSync(startedFile, 'utf8').trim()
+    : String(Math.round(statSync(log).mtimeMs));
+  const code = Number(readFileSync(path.join(dir, 'exit-code'), 'utf8').trim());
+  return [{ role, startedAt, log, exitCode: Number.isNaN(code) ? null : code }];
 }
 
 const TAIL_BYTES = 256 * 1024;

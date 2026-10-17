@@ -160,6 +160,28 @@ describe('app', { timeout: 30_000 }, () => {
     );
   });
 
+  it('still shows a finished run when another run cannot be read', async () => {
+    settings.autoAdvance = false;
+    const a = app();
+    await a.addProject(project);
+    const runs = path.join(project, '.glafka', 'tickets', '2026-10-13-add-csv-export', 'runs');
+    // The coder's log is a folder: copying it throws, like a log glafka lysis just deleted.
+    mkdirSync(path.join(runs, 'coder', 'log'), { recursive: true });
+    writeFileSync(path.join(runs, 'coder', 'exit-code'), '0');
+    mkdirSync(path.join(runs, 'reviewer'), { recursive: true });
+    writeFileSync(
+      path.join(runs, 'reviewer', 'log'),
+      '{"type":"result","result":"No findings."}\n',
+    );
+    writeFileSync(path.join(runs, 'reviewer', 'exit-code'), '0');
+    await a.refresh(project);
+    const entries = a.store.threads.read({ project, thread: '2026-10-13-add-csv-export' });
+    expect(entries).toContainEqual(
+      expect.objectContaining({ text: 'Review finished.', shown: true }),
+    );
+    expect(entries.filter((e) => e.kind === 'error')).toEqual([]);
+  });
+
   it('does not ring for old tickets on the first look, but still shows them', async () => {
     fake.answer('poreia', {
       contract: 1,
