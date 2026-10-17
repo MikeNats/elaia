@@ -3,7 +3,7 @@ import { handOffNewTickets, type TurnStart } from './ticketHandOff';
 import { PROJECT_THREAD, type ThreadEntry, type ThreadRef } from '@/shared';
 import type { SetupItem } from '@/workflow';
 import { note, record, workflowOf } from './record';
-import { trustedNow } from './repoTrust';
+import { keepTrust, trustedNow } from './repoTrust';
 import { refresh } from './refresh';
 import { nextSetup, projectRef } from './setupCards';
 import { runSetup, setupStep } from './setupRun';
@@ -69,6 +69,9 @@ export async function afterTurn(app: AppState, ref: ThreadRef, turn: TurnStart):
   // A ticket the main chat just made is planned in its own chat, not here.
   if (ref.thread === PROJECT_THREAD) handOffNewTickets(app, ref.project, turn);
   const steps = app.setupSteps.get(ref.project);
-  if (ref.thread === PROJECT_THREAD && steps && !steps.has('complete'))
+  if (ref.thread === PROJECT_THREAD && steps && !steps.has('complete')) {
+    // The setup chat may have written the repo's settings (checksCmd, say): Elaia's own setup.
+    if (turn.ran) keepTrust(app, ref.project);
     await nextSetup(app, ref.project, false);
+  }
 }

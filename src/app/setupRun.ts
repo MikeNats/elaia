@@ -5,7 +5,7 @@ import { refresh } from './refresh';
 import { resultNote } from './resultNote';
 import { nextSetup, projectRef, stepsOf } from './setupCards';
 import { commitSetup } from './setupCommit';
-import { trustedNow } from './repoTrust';
+import { keepingTrust, trustedNow } from './repoTrust';
 import { NOT_TRUSTED_SETUP, offerTrust } from './trustCard';
 import type { AppState } from './types';
 
@@ -15,7 +15,9 @@ async function install(app: AppState, ref: ThreadRef): Promise<boolean> {
   const platform = app.deps.settings().platform;
   note(app, ref, 'progress', `Installing ${workflow.name} (${platform})…`);
   try {
-    const result = await workflow.install(ref.project, platform);
+    const result = await keepingTrust(app, ref.project, () =>
+      workflow.install(ref.project, platform),
+    );
     const failed = `${workflow.name} install failed (exit ${result.code}).`;
     resultNote(app, ref, `${workflow.name} installed.`, failed, result);
     if (result.code !== 0) return false;
@@ -52,7 +54,8 @@ export async function runSetup(app: AppState, project: string): Promise<void> {
         .map((i) => i.key);
       for (const step of workflow.autoSetup(project, missing)) {
         note(app, ref, 'progress', `${step.label}…`);
-        resultNote(app, ref, step.done, `${step.label} failed.`, await step.run());
+        const result = await keepingTrust(app, project, () => step.run());
+        resultNote(app, ref, step.done, `${step.label} failed.`, result);
       }
     }
     await nextSetup(app, project, true);
@@ -83,8 +86,10 @@ export async function setupStep(app: AppState, project: string, key: string, cho
     { at: app.deps.now(), kind: 'you', text: SAID[choice] ?? choice, shown: true, source: 'chat' },
   ]);
   try {
-    if (choice === 'keep')
-      resultNote(app, ref, 'Kept.', 'Keeping it failed.', await workflow.keepFinding(project, key));
+    if (choice === 'keep') {
+      const kept = await keepingTrust(app, project, () => workflow.keepFinding(project, key));
+      resultNote(app, ref, 'Kept.', 'Keeping it failed.', kept);
+    }
     if (choice === 'commit') await commitSetup(app, project);
     if (choice === 'change')
       return await chatTurn(app, ref, '', await workflow.changeFinding(project, key));

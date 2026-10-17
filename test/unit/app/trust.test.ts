@@ -260,3 +260,23 @@ describe('glafka on a repo you have not trusted', { timeout: 15_000 }, () => {
     expect(errors(a, ref)).not.toContain(NOT_TRUSTED_TURN);
   });
 });
+
+describe("Elaia's own setup", { timeout: 15_000 }, () => {
+  it('does not ask again for what Set up wrote', async () => {
+    project = realpathSync(mkdtempSync(path.join(tmpdir(), 'elaia-trust-setup-')));
+    fake.answer('install', {});
+    fake.writes('install', {
+      '.glafka/.keep': '',
+      '.glafka.json': JSON.stringify({ agents: { coder: 'claude -p' } }),
+    });
+    const a = app();
+    // Nothing to run yet: trusted on its own.
+    await a.addProject(project);
+    await a.setup(project);
+    expect(existsSync(path.join(project, '.glafka.json'))).toBe(true);
+    await a.refresh(project);
+    await a.send(mainRef(), 'hi');
+    expect(trustCards(a)).toHaveLength(0);
+    expect(errors(a, mainRef())).not.toContain(NOT_TRUSTED_TURN);
+  });
+});

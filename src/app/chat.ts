@@ -29,6 +29,7 @@ async function runTurn(
   }
   // Tickets made from now on are this turn's: only those go to their own chat.
   const since = app.deps.now();
+  let ran = false;
   try {
     // A button pressed while the old agent writes its handoff note goes to the fresh agent.
     await app.handingOver.get(key);
@@ -37,7 +38,10 @@ async function runTurn(
       holdForTrust(app, ref, text, opts);
       note(app, ref, 'error', NOT_TRUSTED_TURN);
       offerTrust(app, ref.project, true);
-    } else await agentTurn(app, ref, text, opts);
+    } else {
+      ran = true;
+      await agentTurn(app, ref, text, opts);
+    }
   } catch (err) {
     record(app, ref, [chatEntry(app, 'error', messageOf(err))]);
   } finally {
@@ -49,7 +53,7 @@ async function runTurn(
   if (app.disposed) return;
   try {
     // The agent may have run glafka commands; pick up what changed.
-    await afterTurn(app, ref, { since, text });
+    await afterTurn(app, ref, { since, text, ran });
   } catch (err) {
     // A run file deleted under us, say. The chat says so, and the queue still moves.
     record(app, ref, [chatEntry(app, 'error', messageOf(err))]);

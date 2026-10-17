@@ -60,3 +60,15 @@ export function trustedNow(app: AppState, project: string): boolean {
 export function keepTrust(app: AppState, project: string): void {
   app.deps.store.trusted.set(project, trustHash(repoRunnables(app, project)));
 }
+
+// One of Elaia's own setup steps. Trusted before it: what it wrote stays trusted after.
+export async function keepingTrust<T>(
+  app: AppState,
+  project: string,
+  step: () => Promise<T>,
+): Promise<T> {
+  const was = trustedNow(app, project);
+  const result = await step();
+  if (was) keepTrust(app, project);
+  return result;
+}

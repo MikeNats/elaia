@@ -23,6 +23,8 @@ const inEpic = (app: AppState, project: string, id: string) =>
 export interface TurnStart {
   since: string;
   text: string;
+  // The agent started: the repo was trusted then.
+  ran: boolean;
 }
 
 // Made during this turn. An older ticket (from a terminal, or from before the project was
