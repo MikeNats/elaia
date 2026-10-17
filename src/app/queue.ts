@@ -4,13 +4,19 @@ import type { AppState, QueuedTurn } from './types';
 
 // You wrote, or Elaia started a turn, while the chat was busy. Its line shows at once and
 // waits; it goes to the agent, in order, as soon as the running turn ends.
-export function queueIfBusy(app: AppState, ref: ThreadRef, turn: Omit<QueuedTurn, 'ref'>): boolean {
+export function queueIfBusy(
+  app: AppState,
+  ref: ThreadRef,
+  turn: Omit<QueuedTurn, 'ref'>,
+  // False for a turn whose line is in the thread already (one that waited for your Trust).
+  show = true,
+): boolean {
   const key = threadKey(ref);
   // Busy, handing over, or others already waiting: then this one waits too, in order.
   if (!app.turns.isBusy(ref) && !app.handingOver.has(key) && !app.queued.has(key)) return false;
   app.queued.set(key, [...(app.queued.get(key) ?? []), { ...turn, ref }]);
   // A turn Elaia starts itself has no line of yours. An empty one would also clear the dot.
-  if (turn.text) record(app, ref, [chatEntry(app, 'you', turn.text)]);
+  if (show && turn.text) record(app, ref, [chatEntry(app, 'you', turn.text)]);
   postSnapshot(app);
   return true;
 }

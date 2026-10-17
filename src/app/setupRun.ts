@@ -5,6 +5,8 @@ import { refresh } from './refresh';
 import { resultNote } from './resultNote';
 import { nextSetup, projectRef, stepsOf } from './setupCards';
 import { commitSetup } from './setupCommit';
+import { keepingTrust, trustedNow } from './repoTrust';
+import { NOT_TRUSTED_SETUP, offerTrust } from './trustCard';
 import type { AppState } from './types';
 
 async function install(app: AppState, ref: ThreadRef): Promise<boolean> {
@@ -13,7 +15,9 @@ async function install(app: AppState, ref: ThreadRef): Promise<boolean> {
   const platform = app.deps.settings().platform;
   note(app, ref, 'progress', `Installing ${workflow.name} (${platform})…`);
   try {
-    const result = await workflow.install(ref.project, platform);
+    const result = await keepingTrust(app, ref.project, () =>
+      workflow.install(ref.project, platform),
+    );
     const failed = `${workflow.name} install failed (exit ${result.code}).`;
     resultNote(app, ref, `${workflow.name} installed.`, failed, result);
     if (result.code !== 0) return false;
@@ -29,12 +33,17 @@ async function install(app: AppState, ref: ThreadRef): Promise<boolean> {
 // chat only gets what no command could do.
 export async function runSetup(app: AppState, project: string): Promise<void> {
   const ref = projectRef(project);
-  // Setup is under way: the card would only come back with each finished step.
-  app.setupAnswered.add(project);
-  stepsOf(app, project).clear();
   record(app, ref, [
     { at: app.deps.now(), kind: 'you', text: 'Set up', shown: true, source: 'chat' },
   ]);
+  // Set up runs glafka, which runs the repo's commands. The card stays until you trust it.
+  if (!trustedNow(app, project)) {
+    note(app, ref, 'error', NOT_TRUSTED_SETUP);
+    return offerTrust(app, project, true);
+  }
+  // Setup is under way: the card would only come back with each finished step.
+  app.setupAnswered.add(project);
+  stepsOf(app, project).clear();
   try {
     if (!(await install(app, ref))) return;
     const workflow = workflowOf(app, project);
@@ -45,7 +54,8 @@ export async function runSetup(app: AppState, project: string): Promise<void> {
         .map((i) => i.key);
       for (const step of workflow.autoSetup(project, missing)) {
         note(app, ref, 'progress', `${step.label}…`);
-        resultNote(app, ref, step.done, `${step.label} failed.`, await step.run());
+        const result = await keepingTrust(app, project, () => step.run());
+        resultNote(app, ref, step.done, `${step.label} failed.`, result);
       }
     }
     await nextSetup(app, project, true);
@@ -76,8 +86,10 @@ export async function setupStep(app: AppState, project: string, key: string, cho
     { at: app.deps.now(), kind: 'you', text: SAID[choice] ?? choice, shown: true, source: 'chat' },
   ]);
   try {
-    if (choice === 'keep')
-      resultNote(app, ref, 'Kept.', 'Keeping it failed.', await workflow.keepFinding(project, key));
+    if (choice === 'keep') {
+      const kept = await keepingTrust(app, project, () => workflow.keepFinding(project, key));
+      resultNote(app, ref, 'Kept.', 'Keeping it failed.', kept);
+    }
     if (choice === 'commit') await commitSetup(app, project);
     if (choice === 'change')
       return await chatTurn(app, ref, '', await workflow.changeFinding(project, key));

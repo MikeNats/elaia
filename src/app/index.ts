@@ -15,6 +15,7 @@ import { setViewing } from './attention';
 import { refresh } from './refresh';
 import { storeChanged } from './storeWatch';
 import { threadPage } from './ticketIntro';
+import { trustActions } from './trustCard';
 import type { AppDeps, AppState } from './types';
 
 export type { AppDeps, Settings, AgentKind } from './types';
@@ -43,6 +44,8 @@ function newState(deps: AppDeps): AppState {
     live: new Map(),
     liveTokens: new Map(),
     queued: new Map(),
+    heldForTrust: new Map(),
+    trustDeclined: new Set(),
     disposed: false,
     liveTimer: null,
     viewing: null,
@@ -86,6 +89,7 @@ export function createApp(deps: AppDeps) {
       if (setViewing(app, ref, atBottom)) postSnapshot(app);
     },
     ...setupActions(app),
+    ...trustActions(app),
     approveEpic: (p: string, slug: string, approval: Approval) =>
       approveEpic(app, p, slug, approval),
     saveInbox: (p: string, files: { name: string; data: string }[]) => saveInbox(app, p, files),
@@ -98,6 +102,7 @@ export function createApp(deps: AppDeps) {
       // Nothing new may start now; waiting messages are dropped, and their chats say so.
       app.disposed = true;
       dropQueued(app);
+      app.heldForTrust.clear();
       app.turns.stopAll();
       // After the Not sent lines, so they are written into the repo too.
       keepAllNow(app);

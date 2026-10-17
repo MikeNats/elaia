@@ -16,6 +16,10 @@ export function fakeGlafkaDir() {
       writeFileSync(path.join(dir, `${command}.json`), JSON.stringify(json));
       writeFileSync(path.join(dir, `${command}.code`), String(code));
     },
+    // Files `command` writes into the folder it runs in, by relative path: like a real install.
+    writes(command: string, files: Record<string, string>) {
+      writeFileSync(path.join(dir, `${command}.writes.json`), JSON.stringify(files));
+    },
     calls(): string[] {
       const file = path.join(dir, 'calls.log');
       return existsSync(file) ? readFileSync(file, 'utf8').trim().split('\n') : [];

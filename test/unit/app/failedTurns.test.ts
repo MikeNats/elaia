@@ -1,9 +1,8 @@
-import { mkdirSync, mkdtempSync, realpathSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp, type App, type Settings } from '@/app';
-import { repoCommandAllowed } from '@/app/repoCommand';
 import { afterTurn } from '@/app/setup';
 import { createStore } from '@/store';
 import { PROJECT_THREAD, threadKey, type ThreadRef, type ToWebview } from '@/shared';
@@ -15,12 +14,6 @@ import { makeTicket } from '../../support/ticket';
 vi.mock('@/app/setup', async (importOriginal) => {
   const real = await importOriginal<typeof import('@/app/setup')>();
   return { ...real, afterTurn: vi.fn(real.afterTurn) };
-});
-
-// The repo-command check says yes unless a test makes one call say no.
-vi.mock('@/app/repoCommand', async (importOriginal) => {
-  const real = await importOriginal<typeof import('@/app/repoCommand')>();
-  return { ...real, repoCommandAllowed: vi.fn(real.repoCommandAllowed) };
 });
 
 const TICKET = '2026-10-13-add-csv-export';
@@ -76,7 +69,6 @@ beforeEach(() => {
   claude = fakeClaude('turn');
   claude.slow(400);
   vi.mocked(afterTurn).mockReset();
-  vi.mocked(repoCommandAllowed).mockReset();
   settings = {
     workflow: 'glafka',
     glafkaPath: FAKE_GLAFKA,
@@ -120,18 +112,22 @@ describe('the chat queue', { timeout: 15_000 }, () => {
     expect(lastSnapshot()?.queued).toEqual({});
   });
 
-  it("moves the queue on when you say no to the repo's agent command", async () => {
+  it('moves the queue on when the repo stops being trusted, and holds those turns', async () => {
     const a = app();
     await a.addProject(project);
     const ref = { project, thread: TICKET };
     const { done } = await startBusy(a, ref);
     await a.send(ref, 'second');
     await a.send(ref, 'third');
-    // You say no for "second" only.
-    vi.mocked(repoCommandAllowed).mockResolvedValueOnce(false);
+    // A pull brings a hook while the first turn runs.
+    mkdirSync(path.join(project, '.claude'));
+    writeFileSync(
+      path.join(project, '.claude', 'settings.json'),
+      JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ command: 'echo hi' }] }] } }),
+    );
     await done;
-    expect(texts(a, ref, 'error')).toHaveLength(1);
-    expect(claude.calls()).toHaveLength(2);
+    expect(texts(a, ref, 'error')).toHaveLength(2);
+    expect(claude.calls()).toHaveLength(1);
     expect(lastSnapshot()?.queued).toEqual({});
   });
 });

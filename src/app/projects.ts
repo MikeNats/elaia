@@ -4,6 +4,7 @@ import { epicViews } from './epicCard';
 import { postSnapshot } from './record';
 import { refresh } from './refresh';
 import { offerSetup } from './setup';
+import { offerTrust } from './trustCard';
 import { loadAttention } from './attention';
 import type { AppState } from './types';
 
@@ -33,6 +34,8 @@ export async function addProject(app: AppState, projectPath: string): Promise<vo
   app.projects.set(projectPath, stateFor(app, projectPath));
   postSnapshot(app);
   await refresh(app, projectPath);
+  // In any window: you added it here. The Set up card waits until it is trusted.
+  offerTrust(app, projectPath);
   offerSetup(app, projectPath);
 }
 

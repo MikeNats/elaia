@@ -46,8 +46,6 @@ export function activate(context: vscode.ExtensionContext): ElaiaApi {
     notify: slot.notify,
     isLeader: leader.isLeader,
     now: () => new Date().toISOString(),
-    confirm: async (text, yes) =>
-      (await vscode.window.showWarningMessage(text, { modal: true }, yes)) === yes,
   });
   const watchers = createWatchers(app, leader.tick, slot.isOpen);
   slot.bind({ app, projectsChanged: () => watchers.sync() });

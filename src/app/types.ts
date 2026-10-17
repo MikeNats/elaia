@@ -39,8 +39,6 @@ export interface AppDeps {
   // True in the one VS Code window that keeps the threads. Other windows only show state.
   isLeader(): boolean;
   now(): string;
-  // Asks you yes or no in a VS Code dialog. Missing (in tests, say): the answer is no.
-  confirm?(text: string, yes: string): Promise<boolean>;
 }
 
 // A turn waiting for a busy chat. `text` is your line (empty for a turn Elaia starts itself);
@@ -77,6 +75,10 @@ export interface AppState {
   keeping: Map<string, { timer: NodeJS.Timeout; ref: ThreadRef }>;
   // Turns asked for while a chat was busy, by thread key; they go next, in order.
   queued: Map<string, QueuedTurn[]>;
+  // Turns that waited for your Trust, by project. They run once you press it; a reload drops them.
+  heldForTrust: Map<string, QueuedTurn[]>;
+  // Projects whose trust card you answered Not now: refresh does not show it again.
+  trustDeclined: Set<string>;
   // VS Code is closing: no turn starts any more.
   disposed: boolean;
   // Agents each chat has running now, by thread key (and the timer that shows their steps).

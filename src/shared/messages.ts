@@ -35,6 +35,8 @@ export const ToHostSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('start-ticket'), ...ref, ticket: name }),
   z.strictObject({ type: z.literal('setup'), project: z.string() }),
   z.strictObject({ type: z.literal('skip-setup'), project: z.string() }),
+  z.strictObject({ type: z.literal('trust'), project: z.string(), hash: z.string() }),
+  z.strictObject({ type: z.literal('not-trust'), project: z.string() }),
   z.strictObject({
     type: z.literal('setup-step'),
     project: z.string(),

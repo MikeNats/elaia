@@ -1,4 +1,4 @@
-import type { NextStep } from '@/workflow';
+import { NotTrustedError, type NextStep } from '@/workflow';
 import type { ThreadEntry } from '@/shared';
 import { noteAgent } from './liveAgents';
 import { explainStop, stopMoved } from './nextStep';
@@ -82,7 +82,8 @@ export async function advance(app: AppState, projectPath: string, id: string): P
     if (stuck) explainStop(app, ref, stuck.reason ?? stuck.action);
   } catch (err) {
     note(app, ref, 'error', messageOf(err));
-    explainStop(app, ref, messageOf(err));
+    // Not trusted: the line above says why. There is nothing for the agent to explain.
+    if (!(err instanceof NotTrustedError)) explainStop(app, ref, messageOf(err));
   }
 }
 

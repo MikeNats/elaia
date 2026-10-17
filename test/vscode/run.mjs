@@ -9,7 +9,10 @@ import { runTests } from '@vscode/test-electron';
 delete process.env.ELECTRON_RUN_AS_NODE;
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
-const profile = mkdtempSync(path.join(os.tmpdir(), 'elaia-vscode-'));
+// A short folder: VS Code puts a socket in it, and macOS refuses a socket path over ~104
+// characters. A deep TMPDIR (one glafka makes for its checks, say) goes over that.
+const base = process.platform === 'win32' ? os.tmpdir() : '/tmp';
+const profile = mkdtempSync(path.join(base, 'elaia-vscode-'));
 
 try {
   await runTests({
