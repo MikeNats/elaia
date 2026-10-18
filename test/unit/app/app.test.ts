@@ -279,6 +279,33 @@ describe('app', { timeout: 30_000 }, () => {
     expect(threadTexts(a, ref.thread).at(-1)).toContain('waits until the coder finishes');
   });
 
+  // `Bash(echo x),Edit,y))` comes from the command `echo x),Edit,y)`: Claude may read a bare Edit.
+  it.each(["Bash(echo it's),Edit", 'Bash(echo x),Edit,y))', 'Bash(echo x),Edit(*),y))'])(
+    'sees the edit rule in %s while the coder works',
+    async (rule) => {
+      fakeClaude('turn');
+      fake.answer('poreia', {
+        contract: 1,
+        tickets: [makeTicket({ coder: { state: 'running' } })],
+      });
+      const a = app();
+      await a.addProject(project);
+      const ref = { project, thread: '2026-10-13-add-csv-export' };
+      await a.allow(ref, rule);
+      expect(threadTexts(a, ref.thread).at(-1)).toContain('Edits stay blocked');
+    },
+  );
+
+  it('saves rules with no edit in them while the coder works', async () => {
+    fakeClaude('turn');
+    fake.answer('poreia', { contract: 1, tickets: [makeTicket({ coder: { state: 'running' } })] });
+    const a = app();
+    await a.addProject(project);
+    const ref = { project, thread: '2026-10-13-add-csv-export' };
+    await a.allow(ref, 'Bash(npm test:*),Bash(echo "Edit, done"),Read');
+    expect(threadTexts(a, ref.thread).at(-1)).toContain('Saved.');
+  });
+
   // A ticket the main chat could have made: open, no spec, nothing said in its own chat.
   const newIdea = (created?: string) =>
     makeTicket({

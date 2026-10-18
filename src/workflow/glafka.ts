@@ -25,24 +25,10 @@ import {
   glafkaTypedStep,
   planFileOf,
 } from './glafkaText';
+import { glafkaRules } from './glafkaRules';
 import type { Workflow } from './types';
 
 const docsDir = (project: string) => path.join(project, 'docs', 'glafka');
-// A glafka command in both forms its skills use: on PATH, and the project's own copy.
-const commands = (names: string[]) =>
-  names.flatMap((name) => [`Bash(glafka ${name}:*)`, `Bash(node .glafka/bin/glafka.js ${name}:*)`]);
-// The steps that act on one ticket by its id.
-const TICKET_STEPS = [
-  'lysis',
-  'cancel',
-  'vima',
-  'ergon',
-  'plan',
-  'spec',
-  'epistle',
-  'psyche',
-  'apofasi',
-];
 // `glafka plan` can set up containers, a database and the dev server.
 const PLAN_TIMEOUT = 900_000;
 const isSetupKey = (key: string): key is SetupKey =>
@@ -60,12 +46,8 @@ export function glafkaWorkflow(bin: string): Workflow {
     worktreesDir: WORKTREES_DIR,
     // glafka's skills fall back to the project's own copy when `glafka` is not on PATH.
     allowedTools: ['Bash(glafka:*)', 'Bash(node .glafka/bin/glafka.js:*)'],
-    // A worktree (plan, heureka) or a coder (ergon) starts only from Elaia's Start button.
-    plannerDenied: commands(['plan', 'ergon', 'heureka']),
-    createDenied: commands(['create', 'genesis', 'heureka']),
-    otherTicketsDenied: (ids) =>
-      ids.flatMap((id) => commands(TICKET_STEPS.map((step) => `${step} ${id}`))),
-    pushOnly: commands(['epistle']),
+    // What a chat may not run: start work, make tickets, push, touch other or all tickets.
+    ...glafkaRules,
     // glafka's own code and state: an agent that rewrites bin/glafka.js could then run anything.
     lockedFiles: ['.glafka/**'],
     // Where glafka reads the commands it runs (coder, checks) and its guardrails.

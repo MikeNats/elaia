@@ -79,10 +79,13 @@ export interface Workflow {
   // Commands that make a ticket. Epic chats and ticket chats may not: Elaia makes an epic's
   // tickets, and a ticket chat keeps to its own ticket.
   createDenied: string[];
-  // A ticket chat may run no step of these other tickets.
+  // A ticket chat may run no command of the tool that names one of these other tickets.
   otherTicketsDenied(ids: string[]): string[];
   // Commands only the Push button may run: they push and open a PR.
   pushOnly: string[];
+  // Commands only the main chat may run: they act on every ticket, or write files that are
+  // locked outside the main chat.
+  sharedDenied: string[];
   // Files no chat may edit, relative to the project: changing them could make the tool run anything.
   lockedFiles: string[];
   // Also locked in ticket and epic chats. The main chat keeps them: setup there writes them.

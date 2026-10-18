@@ -43,9 +43,14 @@ export function denyRulesFor(app: AppState, ref: ThreadRef, turn: { push?: boole
     ...WORKTREE_REMOVE,
   ];
   // Ticket and epic chats: nor the files that say which commands the tool runs. Nor do they
-  // make tickets: Elaia makes an epic's tickets, and a ticket chat keeps to its own.
+  // make tickets (Elaia makes an epic's tickets, and a ticket chat keeps to its own), nor run
+  // what acts on every ticket.
   if (ref.thread !== PROJECT_THREAD)
-    rules.push(...lockRules(ref.project, workflow.lockedOutsideMain), ...workflow.createDenied);
+    rules.push(
+      ...lockRules(ref.project, workflow.lockedOutsideMain),
+      ...workflow.createDenied,
+      ...workflow.sharedDenied,
+    );
   // Main chat and epic chats plan: worktrees read-only, and no worktree or coder started here.
   if (ref.thread === PROJECT_THREAD || epicSlugOf(ref.thread))
     rules.push(...worktreeReadOnly(workflow.worktreesDir), ...workflow.plannerDenied);
